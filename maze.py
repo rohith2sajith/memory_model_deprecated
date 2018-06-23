@@ -67,3 +67,5 @@ class Maze(object):
         for a in range(2):
             for b in range(3):
                 board[b + 18][a].is_travellable = True
+
+

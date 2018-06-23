@@ -1,17 +1,19 @@
 import numpy as np
 import math
+import maze
 class Mouse(object):
-    ALPHA = 0.875
-    SIGMA = 0.707
+    ALPHA = 10
+    SIGMA = 1.5
     MEAN = 0
     MIN = 0.5
 
-    def __init__(self,x,y,v,a,t):
+    def __init__(self,x,y,v,a,t,memorymodel):
         self.x=x
         self.y=y
         self.v=v
         self.a=a
         self.t=t
+        self.memorymodel = memorymodel
 
     def get_next_acceleration(self):
         a =  np.random.normal(self.MEAN,self.SIGMA)
@@ -25,30 +27,76 @@ class Mouse(object):
             arr.append(0)
         arr.append(self.ALPHA)
         arr.append(-1)
-        y = np.polynomial.polynomial.polyroots(arr)
-        for i in y:
-            print(i.real, i.imag)
-        return np.polynomial.polynomial.polyroots(arr)
+
+        z = np.polynomial.polynomial.polyroots(arr)
+        k = z.imag
+        for i in range(t+1):
+            if k[i] == 0:
+                return z[i].real
+
+        return 2
 
 
+        #return np.polynomial.polynomial.polyroots(arr)
+
+    #def get_next_coordinate(self, x, y, v, t):
+     #   theta = np.random.random() * 180
+      #  v_x = v * np.cos(theta)
+       # v_y = v * np.sin(theta)
+        #if t==0:
+         #   return [1+v_x,1+v_y]
+       # valsx = [math.pow(v_x,t + 1)]
+#        valsy = [math.pow(v_y,t + 1)]
+ #       for num in range(t - 1):
+  #          valsx.append(0)
+   #         valsy.append(0)
+    #    valsx.append(1)
+     #   valsx.append(-1)
+      #  valsy.append(1)
+       # valsy.append(-1)
+#        X = np.polynomial.polynomial.polyroots(valsx)
+ #       Y = np.polynomial.polynomial.polyroots(valsy)
+  #      X_i = X.imag
+   #     Y_i = Y.imag
+    #    XX = 2
+     #   YY = 2
+      #  for i in range(t+1):
+       #     if X_i[i] == 0:
+        #        XX = X[i].real
+#
+ #       for j in range(t+1):
+  #          if Y_i[j] == 0:
+   #             YY = Y[i].real
+#
+ #       return [XX, YY]
 
     def get_next_coordinate(self, x, y, v, t):
         theta = np.random.random() * 180
-        v_x = v * np.cos(theta)
-        v_y = v * np.sin(theta)
-        if t==0:
-            return [1+v_x,1+v_y]
-        valsx = [math.pow(v_x,t + 1)]
-        valsy = [math.pow(v_y,t + 1)]
-        for num in range(t - 1):
-            valsx.append(0)
-            valsy.append(0)
-        valsx.append(1)
-        valsx.append(-1)
-        valsy.append(1)
-        valsy.append(-1)
-        return [np.polynomial.polynomial.polyroots(valsx),
-                np.polynomial.polynomial.polyroots(valsy)]
+        d = np.random.random() * 50
+        d_x = d * np.cos(theta)
+        d_y = d * np.sin(theta)
+        x_f = x+ d_x
+        y_f = y + d_y
+        if x+d_x < 0:
+            x_f = x - d_x
+        if y+d_y < 0:
+            y_f = y - d_y
+        if x + d_x > 600:
+            x_f = x - d_x
+        if y + d_y > 600:
+            y_f = y - d_y
+
+
+        return [x_f,y_f]
+
+    def move(self,x,y):
+        current_x = self.x  # store old x and y
+        current_y = self.y
+        # draw line
+        self.memorymodel.draw_line(current_x,current_y,x,y)
+        print(f"drawing line ({current_x},{current_y}) - ({x},{y})")
+        self.set_x(x) # save x an y
+        self.set_y(y)
 
     def get_x (self):
         return self.x
