@@ -14,6 +14,7 @@ class Mouse(object):
         self.a=a
         self.t=t
         self.memorymodel = memorymodel
+        self.mouse_shape = None
 
     def get_next_acceleration(self):
         a =  np.random.normal(self.MEAN,self.SIGMA)
@@ -94,7 +95,8 @@ class Mouse(object):
         current_y = self.y
         # draw line
         self.memorymodel.draw_line(current_x,current_y,x,y)
-        print(f"drawing line ({current_x},{current_y}) - ({x},{y})")
+        #print(f"drawing line ({current_x},{current_y}) - ({x},{y})")
+        self.mouse_shape = self.memorymodel.update_circle(self.mouse_shape,x,y)
         self.set_x(x) # save x an y
         self.set_y(y)
 

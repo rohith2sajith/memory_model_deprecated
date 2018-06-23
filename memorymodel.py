@@ -44,6 +44,7 @@ class MemoryModel (object):
 
     def start_learning(self):
         self.move_mouse(self.rat)
+        self.print_board()
 
     def init_board(self):
         x = 0
@@ -57,16 +58,23 @@ class MemoryModel (object):
                 x += self.CELL_WIDTH
                 # for testing make the is_travelable random
                 is_travelable = False
-
-                a_row.append(
-                    cell.Cell(self.DEFAULT_WEIGHT, x, y, is_travelable))
+                travelled = -1
+                a_row.append(cell.Cell(self.DEFAULT_WEIGHT, x, y, is_travelable, travelled))
             y += self.CELL_WIDTH
             self.board.append(a_row)
         self.my_maze = maze.Maze(self.board)
         self.rat = mouse.Mouse(0,600,0,0,0,self)
-
+    def update_circle(self,id,x,y):
+        oldcircle = None
+        if id:
+            oldcircle = self.canvas.find_withtag(id)
+            self.canvas.delete(oldcircle)
+        oldcircle =  self.canvas.create_oval(x,y,x+8,y+8,fill="red")
+        self.root.update()
+        return oldcircle
     def draw_line(self,x1,y1,x2,y2):
-        self.canvas.create_line(x1,y1,x2,y2)
+        self.canvas.create_line(x1,y1,x2,y2,fill="green")
+        self.root.update()
 
     def move_mouse(self,rat):
         for i in range(10000):#rat.get_v() > rat.MIN:
@@ -89,13 +97,23 @@ class MemoryModel (object):
             x_f =coords[0]
             y_f =coords[1]
             if x_f>580 and x_f<600 and y_f>0 and y_f<20:
-                print(x_f,y_f)
+                rat.move(x_f,y_f)
+                self.board[int(y_f // 20)][int(x_f // 20)].travelled = rat.get_t()
+                self.my_maze.update_weight(rat)
                 break
             row = int(y_f // 20)
             col = int(x_f // 20)
+            if rat.get_t()%100 == 0:
+                self.my_maze.update_weight(rat)
             if not self.board[int(y_f // 20)][int(x_f // 20)].is_travellable:
                 rat.move(x_f,y_f)
+                self.board[int(y_f // 20)][int(x_f // 20)].travelled = rat.get_t()
                 rat.set_t(rat.get_t()+1)
+
+    def print_board(self):
+        for i in range(30):
+            for j in range(30):
+                print(self.board[i][j])
 
             # print(rat)
             # instead of setting x and y directly to mouse.
