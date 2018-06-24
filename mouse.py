@@ -71,9 +71,9 @@ class Mouse(object):
 #
  #       return [XX, YY]
 
-    def get_next_coordinate(self, x, y, v, t):
+    def get_next_coordinate(self, x, y, t):
         theta = np.random.random() * 180
-        d = np.random.random() * 50
+        d = np.random.random() * 10
         d_x = d * np.cos(theta)
         d_y = d * np.sin(theta)
         x_f = x+ d_x
@@ -89,6 +89,28 @@ class Mouse(object):
 
 
         return [x_f,y_f]
+
+    def intersect(self,a,b,c,d,lower_x,lower_y):
+        slope = (d-b)/(c-a)
+        rslope = (c-a)/(d-b)
+        nslope= (b-d)/(c-a)
+        nrslope= (a-c)/(d-b)
+        if (nslope*(lower_x)-c*nslope+d) < lower_y + 20 and (nslope*(lower_x)-c*nslope+d) > lower_y and int(lower_x) in range(int(min(a,c)),int(max(a,c)+1)):
+            return True
+        elif (nslope*(lower_x+20)-c*nslope+d) < lower_y + 20 and (nslope*(lower_x+20)-c*nslope+d) > lower_y and int(lower_x)+20 in range(int(min(a,c)),int(max(a,c)+1)):
+            return True
+        elif ((lower_y-d)*nrslope+c) < lower_x+20 and ((lower_y-d)*nrslope+c) > lower_x and int(lower_y) in range(int(min(b,d)),int(max(b,d)+1)):
+            return True
+        elif ((lower_y+20-d)*nrslope+c) < lower_x+20 and ((lower_y+20-d)*nrslope+c) > lower_x and int(lower_y)+20 in range(int(min(b,d)),int(max(b,d)+1)):
+            return True
+        else:
+            return False
+
+
+
+
+
+
 
     def move(self,x,y):
         current_x = self.x  # store old x and y
