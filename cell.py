@@ -21,7 +21,7 @@ class Cell(object):
     def set_weight(self, weight):
         self.weight = weight
 
-    CELL_WIDTH = 20 # square width
-    DEFAULT_WEIGHT =0.1  # default weight
-    WALKABLE_CELL_COLOR = "gray"
-    BLOCKED_CELL_COLOR = "white"
+#    CELL_WIDTH = 20 # square width
+#    DEFAULT_WEIGHT =0.1  # default weight
+#    WALKABLE_CELL_COLOR = "gray"
+#    BLOCKED_CELL_COLOR = "white"

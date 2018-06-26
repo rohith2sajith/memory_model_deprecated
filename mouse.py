@@ -72,7 +72,7 @@ class Mouse(object):
  #       return [XX, YY]
 
     def get_next_coordinate(self, x, y, t):
-        theta = np.random.random() * 180
+        theta = (np.random.random() * 90)+270
         d = np.random.random() * 10
         d_x = d * np.cos(theta)
         d_y = d * np.sin(theta)

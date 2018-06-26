@@ -1,13 +1,15 @@
 import cell
 import mouse
+import config
+
 class Maze(object):
     def __init__(self,board):
         self.board = board
         self.setup_maze(self.board)
 
     def update_weight(self,mouse):
-        for i in range (30):
-            for j in range(30):
+        for i in range (config.NUMBER_OF_CELLS):
+            for j in range(config.NUMBER_OF_CELLS):
                 if j == mouse.get_x()//20 and i == mouse.get_y()//20:
                     self.board[i][j].set_weight(2)
                 elif self.board[i][j].travelled == -1:
@@ -15,7 +17,8 @@ class Maze(object):
                 elif self.board[i][j].get_weight()==2:
                     self.board[i][j].set_weight(1/(mouse.get_t()-self.board[i][j].travelled))
                 else:
-                    self.board[i][j].set_weight(max(self.board[i][j].get_weight(), 1/(mouse.get_t()-self.board[i][j].travelled)))
+                    #self.board[i][j].set_weight(max(self.board[i][j].get_weight(), 1/(mouse.get_t()-self.board[i][j].travelled)))
+                    self.board[i][j].set_weight(1 / (mouse.get_t() - self.board[i][j].travelled))
 
 
     def setup_maze(self,board):
