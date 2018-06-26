@@ -3,12 +3,13 @@ import random
 import maze
 import mouse
 class Cell(object):
-    def __init__(self, weight, x, y, is_travellable, travelled):
+    def __init__(self, weight, x, y, is_travellable, travelled, traced):
         self.weight=weight
         self.x=x
         self.y=y
         self.is_travellable=is_travellable
         self.travelled = travelled
+        self.traced = traced
 
     def __str__(self):
         #return f'({self.x},{self.y},{self.weight} )'
