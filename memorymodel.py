@@ -3,7 +3,9 @@ import mouse
 import maze
 import config as config
 import tkinter
-
+from sympy import *
+from sympy.geometry import *
+from sympy.core.numbers import *
 class MemoryModel (object):
     CELL_WIDTH = 20 # square width
     DEFAULT_WEIGHT =0.1  # default weight
@@ -109,7 +111,7 @@ class MemoryModel (object):
             y += 1
             self.board.append(a_row)
         self.my_maze = maze.Maze(self.board)
-        self.rat = mouse.Mouse(0,config.max_y_coord(),0,0,0,self)
+        self.rat = mouse.Mouse(0,600,0,0,0,self)
 
     def update_circle(self,id,x,y):
         oldcircle = None
@@ -139,56 +141,96 @@ class MemoryModel (object):
         self.canvas.itemconfigure(last_line, tags="path")
         self.root.update()
 
+    def reset_velocity(self,rat):
+        rat.set_v_x(0)
+        rat.set_v_y(0)
+        print("###### Resting velocity")
     def move_mouse(self,rat):
         for k in range(config.num_learning_steps):#rat.get_v() > rat.MIN:
             self.update_status(f"{k}")
-            bool = False
             coords = [0,config.max_y_coord()]
-            while bool is False:
-                coords = rat.get_next_coordinate(rat.get_x(), rat.get_y(),
+            coords = rat.get_next_coor(rat.get_x(), rat.get_y(),
                                              rat.get_t())
 
-                x_f = coords[0]
-                y_f = coords[1]
-                # draw suggested debug
-                # debug
-                #old_suggested_circle = self.draw_circle_suggested(None,False,x_f,y_f)
-                for  i in range (config.NUMBER_OF_CELLS):
-                    break_loop = False
-                    for j in range (config.NUMBER_OF_CELLS):
-                        if self.board[i][j].is_travellable:
-                            if rat.intersect(rat.get_x(),rat.get_y(),
-                                             x_f,
-                                             y_f,
-                                             config.CELL_WIDTH*j,
-                                             config.CELL_WIDTH*i):
-                                bool = False
-                                break_loop = True
-                                break
-                            else:
-                                bool = True
-                    if break_loop:
-                        break
-            # exit_cell_x1 = 580 exit_cell_x1 = 600 exit_cell_y1 = 0 exit_cell_y2 = 20
-            if x_f > config.exit_cell_x1() \
-                    and x_f < config.exit_cell_x2() \
-                    and y_f > config.exit_cell_y1() \
-                    and y_f < config.exit_cell_y2():
+            x_f = coords[0]
+            y_f = coords[1]
+            row = rat.get_y() // config.CELL_WIDTH
+            col = rat.get_x()//config.CELL_WIDTH
+
+            for  i in range (-1,0,1):
+                for j in range (-1,0,1):
+                    if row+i >=0 and row+i <=config.NUMBER_OF_CELLS-1 and col+j>=0 and col+j <=config.NUMBER_OF_CELLS-1:
+                        if self.board[int(row+i)][int(col+j)].is_travellable:
+                            arr = rat.intersect2(rat.get_x(),rat.get_y(),x_f,y_f,config.CELL_WIDTH*j,config.CELL_WIDTH*i)
+                            if arr[0]:
+                                if len(arr) == 2:
+                                    x_f = arr[1][0]
+                                    y_f = arr[1][1]
+                                if len(arr) == 3:
+                                    distance1 = math.sqrt(math.pow(rat.get_x()-arr[1][0],2)+math.pow(rat.get_y()-arr[1][1],2))
+                                    distance2 = math.sqrt(math.pow(rat.get_x()-arr[2][0],2)+math.pow(rat.get_y()-arr[2][1],2))
+                                    if distance1 > distance2:
+                                        x_f = arr[2][0]
+                                        y_f = arr[2][1]
+                                    else:
+                                        x_f = arr[1][0]
+                                        y_f = arr[1][1]
+
+                                self.reset_velocity(rat)
+                    vals = rat.off_grid(x_f, y_f)  # of the grid
+                    if vals[0]:
+                        p1 = Point2D(rat.get_x(), rat.get_y())
+                        p2 = Point2D(x_f, y_f)
+                        line = Segment2D(p1, p2)
+                        if vals[1] == 0:
+                            int_point = intersection(line,Line2D((0,0),(0,2)))
+                            if int_point and len(int_point):
+                                x_f = float(int_point[0].x)
+                                y_f = float(int_point[0].y)
+                            self.reset_velocity(rat)
+                        elif vals[1] == 1:
+                            int_point = intersection(line, Line2D((600, 0), (600, 2)))
+                            if int_point and len(int_point):
+                                x_f = float(int_point[0].x)
+                                y_f = float(int_point[0].y)
+                            self.reset_velocity(rat)
+                        elif vals[1] == 2:
+                            int_point = intersection(line, Line2D((0, 0), (2, 0)))
+                            if int_point and len(int_point):
+                                x_f = float(int_point[0].x)
+                                y_f = float(int_point[0].y)
+                            self.reset_velocity(rat)
+                        elif vals[1] == 3:
+                            int_point = intersection(line, Line2D((0, 600), (2, 600)))
+                            if int_point and len(int_point):
+                                x_f = float(int_point[0].x)
+                                y_f = float(int_point[0].y)
+                            self.reset_velocity(rat)
+            if self.isOnLastCell(x_f,y_f):
                 rat.move(x_f,y_f)
-                self.board[int(y_f // config.CELL_WIDTH)][int(x_f //config.CELL_WIDTH)].travelled = rat.get_t()
+                self.board[int((y_f-0.00001) // config.CELL_WIDTH)][int((x_f-0.00001) //config.CELL_WIDTH)].travelled = rat.get_t()
                 self.my_maze.update_weight(rat)
                 break
             row = int(y_f // config.CELL_WIDTH)
             col = int(x_f // config.CELL_WIDTH)
 
-            if rat.get_t()%10 == 0:
-                self.my_maze.update_weight(rat)
-            if not self.board[int(y_f // config.CELL_WIDTH)][int(x_f // config.CELL_WIDTH)].is_travellable:
-                rat.move(x_f,y_f)
-                self.board[int(y_f // config.CELL_WIDTH)][int(x_f // config.CELL_WIDTH)].travelled = rat.get_t()
-                rat.set_t(rat.get_t()+1)
+            try:
+                if rat.get_t()%10 == 0:
+                    self.my_maze.update_weight(rat)
+                row = int((y_f-0.00001)// config.CELL_WIDTH)
+                col = int((x_f-0.00001) // config.CELL_WIDTH)
+                if not self.board[row][col].is_travellable:
+                    rat.move(x_f,y_f)
+                    self.board[row][col].travelled = rat.get_t()
+                    rat.set_t(rat.get_t()+1)
+            except IndexError as e:
+                print("DEBUG. Row column somehow out of range.",row,col,x_f,y_f)
         # update for last time
         self.my_maze.update_weight(rat)
+
+    def isOnLastCell(self,x_f,y_f):
+        # check to see the points are on last cell
+        return  x_f > config.exit_cell_x1() and x_f < config.exit_cell_x2() and y_f > config.exit_cell_y1() and y_f < config.exit_cell_y2()
 
     def path(self,rat):
         x_f = rat.get_x()
@@ -219,7 +261,6 @@ class MemoryModel (object):
                                     j_max = j
 
             if max == -1:
-                print("Could not select a cell to move")
                 for i in [-1, 0, 1]:
                     for j in [-1, 0, 1]:
                         if not i == 0 or not j == 0:
@@ -229,7 +270,6 @@ class MemoryModel (object):
                                         i_max = i
                                         j_max = j
 
-            print("Then picked max ",max)
             rat.move(rat.get_x()+config.CELL_WIDTH*j_max, rat.get_y()+config.CELL_WIDTH*i_max)
             self.board[row][col].traced = True
 
