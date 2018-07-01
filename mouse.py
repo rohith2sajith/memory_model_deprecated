@@ -5,7 +5,8 @@ from sympy import *
 from sympy.geometry import *
 class Mouse(object):
     ALPHA = 0.875
-    SIGMA = 7.0
+    SIGMA1 = 5.6
+    SIGMA2 = 5.6
     MEAN = 0
     MIN = 0.5
 
@@ -19,11 +20,19 @@ class Mouse(object):
         self.mouse_shape = None
 
     def get_next_acceleration_x(self):
-        a_x = np.random.normal(self.MEAN,self.SIGMA/(math.pow(2,1/2)))
+        a_x = np.random.normal(self.MEAN,self.SIGMA1/(math.pow(2,1/2)))
         return a_x
 
     def get_next_acceleration_y(self):
-        a_y = np.random.normal(self.MEAN,self.SIGMA/(math.pow(2,1/2)))
+        a_y = np.random.normal(self.MEAN,self.SIGMA1/(math.pow(2,1/2)))
+        return a_y
+
+    def get_next_acceleration2_x(self):
+        a_x = np.random.normal(self.MEAN,self.SIGMA2/(math.pow(2,1/2)))
+        return a_x
+
+    def get_next_acceleration2_y(self):
+        a_y = np.random.normal(self.MEAN,self.SIGMA2/(math.pow(2,1/2)))
         return a_y
 
     def get_next_velocity_x(self):
@@ -36,10 +45,35 @@ class Mouse(object):
         self.set_v_y(new_v_y)
         return new_v_y
 
-    def get_next_coor(self,x,y,t):
+    def get_next_velocity2_y(self):
+        new_v_y = self.ALPHA*self.get_v_y() + self.get_next_acceleration2_y()
+        self.set_v_y(new_v_y)
+        return new_v_y
+
+    def get_next_velocity2_x(self):
+        new_v_x = self.ALPHA*self.get_v_x()+self.get_next_acceleration2_x()
+        self.set_v_x(new_v_x)
+        return new_v_x
+
+    def get_next_coor(self,x,y):
         x_f = x+self.get_next_velocity_x()
         y_f = y+self.get_next_velocity_y()
         return [x_f, y_f]
+
+    def get_next_coor2(self,x,y):
+        x_f = x+self.get_next_velocity2_x()
+        y_f = y+self.get_next_velocity2_y()
+        return [x_f, y_f]
+
+    def get_next_coor_directed(self,x,y,theta):
+        x_f = self.get_next_coor2(x,y)[0]
+        y_f = y + self.get_v_x()* np.tan(theta)
+        if abs(y_f-y) > 30:
+            if y > y_f:
+                y_f = y - 30
+            else:
+                y_f = y + 30
+        return [x_f,y_f]
 
 
     def off_grid(self,x_f,y_f):

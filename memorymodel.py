@@ -3,9 +3,11 @@ import mouse
 import maze
 import config as config
 import tkinter
+import numpy as np
 from sympy import *
 from sympy.geometry import *
 from sympy.core.numbers import *
+import copy
 class MemoryModel (object):
     CELL_WIDTH = 20 # square width
     DEFAULT_WEIGHT =0.1  # default weight
@@ -111,7 +113,7 @@ class MemoryModel (object):
             y += 1
             self.board.append(a_row)
         self.my_maze = maze.Maze(self.board)
-        self.rat = mouse.Mouse(0,600,0,0,0,self)
+        self.rat = mouse.Mouse(0,599,0,0,0,self)
 
     def update_circle(self,id,x,y):
         oldcircle = None
@@ -149,8 +151,7 @@ class MemoryModel (object):
         for k in range(config.num_learning_steps):#rat.get_v() > rat.MIN:
             self.update_status(f"{k}")
             coords = [0,config.max_y_coord()]
-            coords = rat.get_next_coor(rat.get_x(), rat.get_y(),
-                                             rat.get_t())
+            coords = rat.get_next_coor(rat.get_x(), rat.get_y())
 
             x_f = coords[0]
             y_f = coords[1]
@@ -233,45 +234,49 @@ class MemoryModel (object):
         return  x_f > config.exit_cell_x1() and x_f < config.exit_cell_x2() and y_f > config.exit_cell_y1() and y_f < config.exit_cell_y2()
 
     def path(self,rat):
+        rat.set_x(0)
+        rat.set_y(599)
+        rat.set_v_x(0)
+        rat.set_v_y(0)
         x_f = rat.get_x()
         y_f = rat.get_y()
-        rat.set_x(0)
-        rat.set_y(config.max_y_coord()-1)
         limit_x = (x_f//config.CELL_WIDTH)*config.CELL_WIDTH
         limit_y = (y_f//config.CELL_WIDTH)*config.CELL_WIDTH
+        arr = []
 
-        bool_1 = rat.get_x() > limit_x and rat.get_x() < limit_x+config.CELL_WIDTH
-        bool_2 = rat.get_y() > limit_y and rat.get_y() < limit_y+config.CELL_WIDTH
-        bool_3 = bool_1 and bool_2
+        while not int(self.board[int(rat.get_y()//config.CELL_WIDTH)][int(rat.get_x()//config.CELL_WIDTH)].get_weight()) == 2:
+            arr.clear()
+            for i in range (20):
+                arr.append(float(np.random.random()*180))
+            for j in range (20):
+                v_x = copy.copy(rat.get_v_x())
+                v_y = copy.copy(rat.get_v_y())
+                next_coords = rat.get_next_coor_directed(rat.get_x(), rat.get_y(), arr[j])
+                x_temp = next_coords[0]
+                y_temp = next_coords[1]
+                row = int(y_temp//config.CELL_WIDTH)
+                col = int(x_temp//config.CELL_WIDTH)
+                if row >= 0 and row <=29 and col >=0 and col<=29:
+                    w = self.board[row][col].get_weight()
+                    tr = y_f//config.CELL_WIDTH
+                    tc = x_f//config.CELL_WIDTH
+                    w1 = self.board[int(y_f//config.CELL_WIDTH)][int(x_f//config.CELL_WIDTH)].get_weight()
+                    if not self.board[row][col].is_travellable and self.board[row][col].get_weight() > self.board[int(y_f//config.CELL_WIDTH)][int(x_f//config.CELL_WIDTH)].get_weight():
+                        rat.move(x_temp,y_temp)
+                        break
+                    else:
+                        rat.set_v_x(v_x)
+                        rat.set_v_y(v_y)
+                else:
+                    rat.set_v_x(v_x)
+                    rat.set_v_y(v_y)
 
-        while not int(self.board[rat.get_y()//config.CELL_WIDTH][rat.get_x()//config.CELL_WIDTH].get_weight()) == 2:
-            max = -1
-            i_max = 0
-            j_max = 0
-            for i in [-1,0,1]: #range(-1,2):
-                for j in [-1,0,1]: #range (-1,2):
-                    col = rat.get_x()//config.CELL_WIDTH
-                    row = rat.get_y()//config.CELL_WIDTH
-                    if not i == 0 or not j == 0:
-                        if (row+i) >= 0 and (row+i) <=config.NUMBER_OF_CELLS-1 and (col+j) >= 0 and (col+j) <=config.NUMBER_OF_CELLS-1:
-                            if not self.board[row+i][col+j].traced:
-                                if self.board[row+i][col+j].get_weight() > max:
-                                    max = self.board[row+i][col+j].get_weight()
-                                    i_max = i
-                                    j_max = j
 
-            if max == -1:
-                for i in [-1, 0, 1]:
-                    for j in [-1, 0, 1]:
-                        if not i == 0 or not j == 0:
-                            if (row + i) >= 0 and (row + i) <= config.NUMBER_OF_CELLS - 1 and (col + j) >= 0 and (col + j) <= config.NUMBER_OF_CELLS - 1:
-                                    if self.board[row + i][col + j].get_weight() > max:
-                                        max = self.board[row + i][col + j].get_weight()
-                                        i_max = i
-                                        j_max = j
 
-            rat.move(rat.get_x()+config.CELL_WIDTH*j_max, rat.get_y()+config.CELL_WIDTH*i_max)
-            self.board[row][col].traced = True
+
+
+
+
 
     def print_board(self):
         # print header
