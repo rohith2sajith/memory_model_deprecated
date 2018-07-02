@@ -8,17 +8,24 @@ from sympy import *
 from sympy.geometry import *
 from sympy.core.numbers import *
 import copy
+from tkinter import filedialog
+from tkinter import IntVar
+
 class MemoryModel (object):
     CELL_WIDTH = 20 # square width
     DEFAULT_WEIGHT =0.1  # default weight
-    WALKABLE_CELL_COLOR = "gray"
-    BLOCKED_CELL_COLOR = "white"
+    WALKABLE_CELL_COLOR = "white"
+    BLOCKED_CELL_COLOR = "gray"
+
+    def __init__(self):
+        self.selection_strategy_max = True
 
     def draw_board(self):
         self.root = tkinter.Tk()  # start the gui engine
+        ## TOP CONTROL BUTTON FRAME
         self.top_frame = tkinter.Frame(self.root)
         self.top_frame.grid(row=0, column=0)
-
+        ## CONTROLS ROW 1
         self.learning_button = tkinter.Button(self.top_frame, text='START LEARNING',
                                         width=20,
                                         command=self.start_learning)
@@ -26,21 +33,28 @@ class MemoryModel (object):
         self.path_button = tkinter.Button(self.top_frame, text='FIND PATH',
                                               width=20,
                                               command=self.find_path)
+        #self.load_maze_button = tkinter.Button(self.top_frame, text='LOAD MAZE',
+        #                                      width=20,
+        #                           command=self.load_maze)
+        ## CONTROL ROW 2
         self.iterations = tkinter.Entry (self.top_frame)
         self.apply_button = tkinter.Button(self.top_frame, text='APPLY',
                                           width=20,
                                           command=self.apply_config)
         label = tkinter.Label(self.top_frame, text='ITERATIONS',
                                            width=20)
+
+        self.strategy = tkinter.Checkbutton(self.top_frame,text="Max weight strategy")
+
         self.learning_button.grid(row=0, column=0)
         self.path_button.grid(row=0, column=1)
+        #self.load_maze_button.grid(row=0, column=2)
         label.grid(row=1, column=0)
         self.iterations.grid(row=1, column=1)
         self.apply_button.grid(row=1, column=2)
+        self.strategy.grid(row=1,column=3)
 
-
-        # create canvas
-
+        ## BOARD CANVASE FRAME
         # you can draw rectangle , lines points etc in a canvas
         canvas_frame = tkinter.Frame(self.root)
         self.canvas = tkinter.Canvas(canvas_frame,
@@ -58,6 +72,7 @@ class MemoryModel (object):
         self.canvas.grid(row=1, column=1)
         right.grid(row=1, column=2)
 
+        ## BOTTOM STATUS FRAME
         self.status = tkinter.Label(self.root, text="STATUS:")
         self.status.grid(row=2, column=0)
 
@@ -67,9 +82,9 @@ class MemoryModel (object):
                 cell = self.board[i][j]
                 # rectangle need (x1,y1) and x2,y2)
                 if cell.is_travellable:
-                    fill_color = self.WALKABLE_CELL_COLOR
-                else:
                     fill_color = self.BLOCKED_CELL_COLOR
+                else:
+                    fill_color = self.WALKABLE_CELL_COLOR
                 box = self.canvas.create_rectangle(self.CELL_WIDTH * j,
                                               self.CELL_WIDTH * i,
                                               self.CELL_WIDTH * (j + 1),
@@ -82,18 +97,25 @@ class MemoryModel (object):
         self.status.configure(text=txt)
 
     def apply_config(self):
-        print(self.iterations.get())
-        config.num_learning_steps=int(self.iterations.get())
+        if int(self.iterations.get())>0:
+            config.num_learning_steps=int(self.iterations.get())
 
     def start_learning(self):
+        self.apply_config()
         self.move_mouse(self.rat)
         self.print_board()
 
     def find_path(self):
+        self.apply_config()
         self.canvas.delete("path")
         self.canvas.update()
         self.path(self.rat)
         self.print_board()
+
+    def load_maze(self):
+        print('loading maze')
+        file_path = filedialog.askopenfilename()
+        self.my_maze.load(file_path)
 
     def init_board(self):
         x = 0
@@ -113,6 +135,8 @@ class MemoryModel (object):
             y += 1
             self.board.append(a_row)
         self.my_maze = maze.Maze(self.board)
+        self.my_maze.setup_default_maze()
+
         self.rat = mouse.Mouse(0,599,0,0,0,self)
 
     def update_circle(self,id,x,y):
@@ -146,7 +170,6 @@ class MemoryModel (object):
     def reset_velocity(self,rat):
         rat.set_v_x(0)
         rat.set_v_y(0)
-        print("###### Resting velocity")
     def move_mouse(self,rat):
         for k in range(config.num_learning_steps):#rat.get_v() > rat.MIN:
             self.update_status(f"{k}")
@@ -155,6 +178,8 @@ class MemoryModel (object):
 
             x_f = coords[0]
             y_f = coords[1]
+            if x_f<0 or x_f >=600 or y_f<0 or y_f >=600:
+                continue
             row = rat.get_y() // config.CELL_WIDTH
             col = rat.get_x()//config.CELL_WIDTH
 
@@ -215,17 +240,17 @@ class MemoryModel (object):
             row = int(y_f // config.CELL_WIDTH)
             col = int(x_f // config.CELL_WIDTH)
 
-            try:
-                if rat.get_t()%10 == 0:
-                    self.my_maze.update_weight(rat)
-                row = int((y_f-0.00001)// config.CELL_WIDTH)
-                col = int((x_f-0.00001) // config.CELL_WIDTH)
-                if not self.board[row][col].is_travellable:
-                    rat.move(x_f,y_f)
-                    self.board[row][col].travelled = rat.get_t()
-                    rat.set_t(rat.get_t()+1)
-            except IndexError as e:
-                print("DEBUG. Row column somehow out of range.",row,col,x_f,y_f)
+            if rat.get_t()%10 == 0:
+                self.my_maze.update_weight(rat)
+
+            row = int((y_f)// config.CELL_WIDTH)
+            col = int((x_f) // config.CELL_WIDTH)
+            if not self.board[row][col].is_travellable:
+                rat.move(x_f,y_f)
+                self.board[row][col].travelled = rat.get_t()
+                rat.set_t(rat.get_t()+1)
+            else:
+                config.p('*')
         # update for last time
         self.my_maze.update_weight(rat)
 
@@ -243,8 +268,10 @@ class MemoryModel (object):
         limit_x = (x_f//config.CELL_WIDTH)*config.CELL_WIDTH
         limit_y = (y_f//config.CELL_WIDTH)*config.CELL_WIDTH
         arr = []
-
+        weights = []
+        weights_map = {}
         while not int(self.board[int(rat.get_y()//config.CELL_WIDTH)][int(rat.get_x()//config.CELL_WIDTH)].get_weight()) == 2:
+            weights.clear()
             arr.clear()
             for i in range (20):
                 arr.append(float(np.random.random()*180))
@@ -262,8 +289,12 @@ class MemoryModel (object):
                     tc = x_f//config.CELL_WIDTH
                     w1 = self.board[int(y_f//config.CELL_WIDTH)][int(x_f//config.CELL_WIDTH)].get_weight()
                     if not self.board[row][col].is_travellable and self.board[row][col].get_weight() > self.board[int(y_f//config.CELL_WIDTH)][int(x_f//config.CELL_WIDTH)].get_weight():
-                        rat.move(x_temp,y_temp)
-                        break
+                        if self.selection_strategy_max:
+                            weights.append([self.board[row][col].get_weight(), x_temp,y_temp])
+                            weights_map[self.board[row][col].get_weight()] = [x_temp,y_temp]
+                        else:
+                            rat.move(x_temp,y_temp)
+                            break
                     else:
                         rat.set_v_x(v_x)
                         rat.set_v_y(v_y)
@@ -271,24 +302,29 @@ class MemoryModel (object):
                     rat.set_v_x(v_x)
                     rat.set_v_y(v_y)
 
-
-
-
-
+            if self.selection_strategy_max and weights_map:
+                b_max = weights_map[max(weights_map)]
+                rat.move(b_max[0], b_max[1])
+            #    max = -1
+            #    b_max = None
+            #    for entry in weights:
+            #        if entry[0] > max:
+            #            b_max = entry
+            #    rat.move(b_max[1],b_max[2])
 
 
 
     def print_board(self):
         # print header
-        print("{:8} ".format(''),end='')
+        config.p("{:8} ".format(''))
         for i in range(config.NUMBER_OF_CELLS):
-            print("{:8.0f} ".format(i),end='')
-        print()
+            config.p("{:8.0f} ".format(i))
+        config.pl()
         for i in range(config.NUMBER_OF_CELLS):
-            print("{:8.0f} ".format(i), end='')
+            config.p("{:8.0f} ".format(i))
             for j in range(config.NUMBER_OF_CELLS):
-                print(self.board[i][j],end='')
-            print()
+                config.p(self.board[i][j])
+            config.pl()
 
 
 def main():

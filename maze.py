@@ -5,7 +5,7 @@ import config
 class Maze(object):
     def __init__(self,board):
         self.board = board
-        self.setup_maze(self.board)
+        #self.setup_maze(self.board)
 
     def update_weight(self,mouse):
         for i in range (config.NUMBER_OF_CELLS):
@@ -20,8 +20,38 @@ class Maze(object):
                     #self.board[i][j].set_weight(max(self.board[i][j].get_weight(), 1/(mouse.get_t()-self.board[i][j].travelled)))
                     self.board[i][j].set_weight(1 / (mouse.get_t() - self.board[i][j].travelled))
 
+    def save(self,filename):
+        with open(filename,'w') as maz_file:
+            for i in range(config.NUMBER_OF_CELLS):
+                for j in range(config.NUMBER_OF_CELLS):
+                    maz_file.write(self.board[i][j].serialize(i,j))
+                    maz_file.write("\n")
 
-    def setup_maze(self,board):
+    def load(self,filename):
+        self.blank_board()
+        with open(filename, 'r') as maz_file:
+            for line in maz_file:
+                line = line.strip("\n")
+                my_cell = cell.Cell()
+                row,col = my_cell.deserialize(line)
+
+                self.board[row][col] = my_cell
+
+    def blank_board(self):
+        x = 0
+        y = 0
+        self.board = []
+        for i in range(config.NUMBER_OF_CELLS):
+            a_row = []
+            for j in range(config.NUMBER_OF_CELLS):
+                a_row.append(cell.Cell(config.DEFAULT_WEIGHT, x, y, False, -1, False))
+            self.board.append(a_row)
+        return self.board
+
+    def setup_default_maze(self):
+        self.setup_with_default_maze(self.board)
+
+    def setup_with_default_maze(self,board):
         for k in range(12):
             board[k][0].is_travellable = True
 

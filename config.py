@@ -1,13 +1,14 @@
 CELL_WIDTH = 20  # square width
 DEFAULT_WEIGHT = 0.1  # default weight
-WALKABLE_CELL_COLOR = "gray"
-BLOCKED_CELL_COLOR = "white"
+WALKABLE_CELL_COLOR = "white"
+BLOCKED_CELL_COLOR = "gray"
 NUMBER_OF_CELLS = 30
 MOUSE_RADIUS = 8
 MOUSE_FILL_COLOR = "red"
 SUGGESTED_MOUSE_FILL_COLOR = "yellow"
 PATH_LINE_COLOR = "green"
 num_learning_steps = 1000
+debug_print=True
 
 def max_y_coord():
     return CELL_WIDTH * NUMBER_OF_CELLS # 600
@@ -24,3 +25,13 @@ def exit_cell_y1():
     return 0
 def exit_cell_y2():
     return CELL_WIDTH  # 20
+
+def p(msg):
+    if not debug_print:
+        return
+    print(msg,end='')
+def pl(*msg):
+    if not debug_print:
+        return
+    p(msg)
+    print()

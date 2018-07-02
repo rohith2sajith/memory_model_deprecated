@@ -3,6 +3,8 @@ import math
 import maze
 from sympy import *
 from sympy.geometry import *
+import config as config
+
 class Mouse(object):
     ALPHA = 0.875
     SIGMA1 = 5.6
@@ -179,7 +181,7 @@ class Mouse(object):
         current_y = self.y
         # draw line
         distance = math.sqrt(math.pow(x-current_x,2)+math.pow(y-current_y,2))
-        print(f"drawing line ({current_x},{current_y}) - ({x},{y}) - {distance}")
+        config.pl(f"drawing line ({current_x},{current_y}) - ({x},{y}) - {distance}")
         self.memorymodel.draw_line(current_x,current_y,x,y)
         self.mouse_shape = self.memorymodel.update_circle(self.mouse_shape,x,y)
         self.set_x(x) # save x an y
