@@ -4,6 +4,7 @@ import maze
 from sympy import *
 from sympy.geometry import *
 import config as config
+from datetime import datetime
 
 class Mouse(object):
     ALPHA = 0.875
@@ -139,7 +140,7 @@ class Mouse(object):
         #  for coord_point in   int_result[1]:
         #     x = coord_point[0]
         #     y = coord_point[1]
-
+        #print(a, b, c, d, lower_x, lower_y)
         p1 = Point2D(a, b)
         p2 = Point2D(c, d)
         if a == c and b == d:
@@ -156,19 +157,24 @@ class Mouse(object):
         # check each segment intersection with given segment
         # if intersect return True and x and y cordinated
         int_points = intersection(given_segment,s1)
+
         if int_points and len(int_points):
+            #my_x, my_y = config.line_intersection([[a, b][c, d]], [[lower_x, 0][lower_x, 2]])
             int_point_list.append([float(int_points[0].x),float(int_points[0].y)])
 
         int_points = intersection(given_segment, s2)
         if int_points and len(int_points):
+            #my_x, my_y = config.line_intersection([[a, b][c, d]], [[lower_x + 20, 0][lower_x + 20, 2]])
             int_point_list.append([float(int_points[0].x), float(int_points[0].y)])
 
         int_points = intersection(given_segment, s3)
         if int_points and len(int_points):
+            #my_x, my_y = config.line_intersection([[a, b][c, d]], [[0, lower_y][2, lower_y]])
             int_point_list.append([float(int_points[0].x), float(int_points[0].y)])
 
         int_points = intersection(given_segment, s4)
         if int_points and len(int_points):
+            #my_x, my_y = config.line_intersection([[a, b][c, d]], [[lower_y + 20][2, lower_y + 20]])
             int_point_list.append([float(int_points[0].x),float(int_points[0].y)])
         if len(int_point_list):
             return [True].append(int_point_list)

@@ -10,6 +10,7 @@ from sympy.core.numbers import *
 import copy
 from tkinter import filedialog
 from tkinter import IntVar
+from datetime import datetime
 
 class MemoryModel (object):
     CELL_WIDTH = 20 # square width
@@ -22,6 +23,7 @@ class MemoryModel (object):
 
     def draw_board(self):
         self.root = tkinter.Tk()  # start the gui engine
+        self.strategy_var = IntVar()
         ## TOP CONTROL BUTTON FRAME
         self.top_frame = tkinter.Frame(self.root)
         self.top_frame.grid(row=0, column=0)
@@ -38,20 +40,21 @@ class MemoryModel (object):
         #                           command=self.load_maze)
         ## CONTROL ROW 2
         self.iterations = tkinter.Entry (self.top_frame)
-        self.apply_button = tkinter.Button(self.top_frame, text='APPLY',
-                                          width=20,
-                                          command=self.apply_config)
+        self.iterations.insert(0,str(config.num_learning_steps))
+        #self.apply_button = tkinter.Button(self.top_frame, text='APPLY',
+        #                                  width=20,
+        #                                  command=self.apply_config)
         label = tkinter.Label(self.top_frame, text='ITERATIONS',
                                            width=20)
 
-        self.strategy = tkinter.Checkbutton(self.top_frame,text="Max weight strategy")
+        self.strategy = tkinter.Checkbutton(self.top_frame,text="Max weight strategy", var = self.strategy_var)
 
         self.learning_button.grid(row=0, column=0)
         self.path_button.grid(row=0, column=1)
         #self.load_maze_button.grid(row=0, column=2)
         label.grid(row=1, column=0)
         self.iterations.grid(row=1, column=1)
-        self.apply_button.grid(row=1, column=2)
+        #self.apply_button.grid(row=1, column=2)
         self.strategy.grid(row=1,column=3)
 
         ## BOARD CANVASE FRAME
@@ -97,7 +100,7 @@ class MemoryModel (object):
         self.status.configure(text=txt)
 
     def apply_config(self):
-        if int(self.iterations.get())>0:
+        if self.iterations.get():
             config.num_learning_steps=int(self.iterations.get())
 
     def start_learning(self):
@@ -106,6 +109,7 @@ class MemoryModel (object):
         self.print_board()
 
     def find_path(self):
+        self.selection_strategy_max = bool(self.strategy_var.get())
         self.apply_config()
         self.canvas.delete("path")
         self.canvas.update()
@@ -170,12 +174,12 @@ class MemoryModel (object):
     def reset_velocity(self,rat):
         rat.set_v_x(0)
         rat.set_v_y(0)
+
     def move_mouse(self,rat):
         for k in range(config.num_learning_steps):#rat.get_v() > rat.MIN:
             self.update_status(f"{k}")
             coords = [0,config.max_y_coord()]
             coords = rat.get_next_coor(rat.get_x(), rat.get_y())
-
             x_f = coords[0]
             y_f = coords[1]
             if x_f<0 or x_f >=600 or y_f<0 or y_f >=600:
