@@ -8,10 +8,11 @@ from datetime import datetime
 
 class Mouse(object):
     ALPHA = 0.875
-    SIGMA1 = 5.6
-    SIGMA2 = 5.6
+    SIGMA1 = 20
+    SIGMA2 = 20
     MEAN = 0
     MIN = 0.5
+    MAX_Y = 30
 
     def __init__(self,x,y,v_x,v_y,t,memorymodel):
         self.x=x
@@ -21,6 +22,7 @@ class Mouse(object):
         self.t=t
         self.memorymodel = memorymodel
         self.mouse_shape = None
+        self.distance = 0
 
     def get_next_acceleration_x(self):
         a_x = np.random.normal(self.MEAN,self.SIGMA1/(math.pow(2,1/2)))
@@ -71,11 +73,11 @@ class Mouse(object):
     def get_next_coor_directed(self,x,y,theta):
         x_f = self.get_next_coor2(x,y)[0]
         y_f = y + self.get_v_x()* np.tan(theta)
-        if abs(y_f-y) > 30:
+        if abs(y_f-y) > self.MAX_Y:
             if y > y_f:
-                y_f = y - 30
+                y_f = y - self.MAX_Y
             else:
-                y_f = y + 30
+                y_f = y + self.MAX_Y
         return [x_f,y_f]
 
 
@@ -140,44 +142,42 @@ class Mouse(object):
         #  for coord_point in   int_result[1]:
         #     x = coord_point[0]
         #     y = coord_point[1]
-        #print(a, b, c, d, lower_x, lower_y)
-        p1 = Point2D(a, b)
-        p2 = Point2D(c, d)
+        print(a, b, c, d, lower_x, lower_y)
+        #p1 = Point2D(a, b)
+        #p2 = Point2D(c, d)
         if a == c and b == d:
             return [False, 0,0]
 
-        given_segment = Segment2D(p1, p2) # given segment
+        given_segment = [[a,b],[c,d]]#Segment2D(p1, p2) # given segment
         # create segments for each of the four edges
-        s1 = Segment2D((lower_x, 0), (lower_x, 2))
-        s2 = Segment2D((lower_x + 20, 0), (lower_x + 20, 2))
-        s3 = Segment2D((0, lower_y), (2, lower_y))
-        s4 = Segment2D((0, lower_y + 20), (2, lower_y + 20))
+        s1 = [[lower_x, lower_y],[lower_x, lower_y+config.CELL_WIDTH]]#Segment2D((lower_x, 0), (lower_x, 2))
+        s2 = [[lower_x, lower_y+config.CELL_WIDTH],[lower_x + config.CELL_WIDTH, lower_y+config.CELL_WIDTH]] #Segment2D((lower_x + 20, 0), (lower_x + 20, 2))
+        s3 = [[lower_x + config.CELL_WIDTH, lower_y+config.CELL_WIDTH],[lower_x + config.CELL_WIDTH, lower_y]] #Segment2D((0, lower_y), (2, lower_y))
+        s4 = [[lower_x + config.CELL_WIDTH, lower_y],[lower_x, lower_y]]#Segment2D((0, lower_y + 20), (2, lower_y + 20))
 
         int_point_list=[]
         # check each segment intersection with given segment
         # if intersect return True and x and y cordinated
-        int_points = intersection(given_segment,s1)
+        x,y = config.line_intersection(given_segment,s1)
 
-        if int_points and len(int_points):
-            #my_x, my_y = config.line_intersection([[a, b][c, d]], [[lower_x, 0][lower_x, 2]])
-            int_point_list.append([float(int_points[0].x),float(int_points[0].y)])
+        if x != None:
+            int_point_list.append([x,y])
 
-        int_points = intersection(given_segment, s2)
-        if int_points and len(int_points):
-            #my_x, my_y = config.line_intersection([[a, b][c, d]], [[lower_x + 20, 0][lower_x + 20, 2]])
-            int_point_list.append([float(int_points[0].x), float(int_points[0].y)])
+        x,y = config.line_intersection(given_segment, s2)
+        if x != None:
+            int_point_list.append([x,y])
 
-        int_points = intersection(given_segment, s3)
-        if int_points and len(int_points):
-            #my_x, my_y = config.line_intersection([[a, b][c, d]], [[0, lower_y][2, lower_y]])
-            int_point_list.append([float(int_points[0].x), float(int_points[0].y)])
+        x,y = config.line_intersection(given_segment, s3)
+        if x != None:
+            int_point_list.append([x,y])
 
-        int_points = intersection(given_segment, s4)
-        if int_points and len(int_points):
-            #my_x, my_y = config.line_intersection([[a, b][c, d]], [[lower_y + 20][2, lower_y + 20]])
-            int_point_list.append([float(int_points[0].x),float(int_points[0].y)])
+        x,y = config.line_intersection(given_segment, s4)
+        if x != None:
+            int_point_list.append([x,y])
         if len(int_point_list):
-            return [True].append(int_point_list)
+            ret_list = [True]
+            ret_list.append(int_point_list)
+            return ret_list
         return [False]
 
 
@@ -187,6 +187,7 @@ class Mouse(object):
         current_y = self.y
         # draw line
         distance = math.sqrt(math.pow(x-current_x,2)+math.pow(y-current_y,2))
+        self.distance += distance
         config.pl(f"drawing line ({current_x},{current_y}) - ({x},{y}) - {distance}")
         self.memorymodel.draw_line(current_x,current_y,x,y)
         self.mouse_shape = self.memorymodel.update_circle(self.mouse_shape,x,y)
@@ -226,6 +227,12 @@ class Mouse(object):
 
     def set_v_y(self, v_y):
         self.v_y = v_y
+
+    def set_distance(self, distance):
+        self.distance = distance
+
+    def get_distance(self):
+        return self.distance
 
 
 

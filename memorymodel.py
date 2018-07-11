@@ -1,6 +1,7 @@
 import cell
 import mouse
 import maze
+import rundata
 import config as config
 import tkinter
 import numpy as np
@@ -17,13 +18,17 @@ class MemoryModel (object):
     DEFAULT_WEIGHT =0.1  # default weight
     WALKABLE_CELL_COLOR = "white"
     BLOCKED_CELL_COLOR = "gray"
+    NUM_DIRECTIONS = 200
+
 
     def __init__(self):
         self.selection_strategy_max = True
+        self.rundata = 1
 
     def draw_board(self):
         self.root = tkinter.Tk()  # start the gui engine
         self.strategy_var = IntVar()
+        self.strategy_var.set(1)
         ## TOP CONTROL BUTTON FRAME
         self.top_frame = tkinter.Frame(self.root)
         self.top_frame.grid(row=0, column=0)
@@ -34,7 +39,11 @@ class MemoryModel (object):
 
         self.path_button = tkinter.Button(self.top_frame, text='FIND PATH',
                                               width=20,
-                                              command=self.find_path)
+                                              command=self.find_path_handler)
+
+        self.collect_data_button = tkinter.Button(self.top_frame, text='COLLECT DATA',
+                                          width=20,
+                                          command=self.collect_data)
         #self.load_maze_button = tkinter.Button(self.top_frame, text='LOAD MAZE',
         #                                      width=20,
         #                           command=self.load_maze)
@@ -51,6 +60,7 @@ class MemoryModel (object):
 
         self.learning_button.grid(row=0, column=0)
         self.path_button.grid(row=0, column=1)
+        self.collect_data_button.grid(row = 0, column = 2)
         #self.load_maze_button.grid(row=0, column=2)
         label.grid(row=1, column=0)
         self.iterations.grid(row=1, column=1)
@@ -104,17 +114,39 @@ class MemoryModel (object):
             config.num_learning_steps=int(self.iterations.get())
 
     def start_learning(self):
+        self.rundata = rundata.RunData()
         self.apply_config()
+        self.canvas.delete("path")
         self.move_mouse(self.rat)
         self.print_board()
 
-    def find_path(self):
+    def collect_data(self):
+        f = open("data.csv", "w+")
+        for i in range(100):
+            if i==0:
+                f.write(rundata.RunData.report_heading()+"\n")
+            self.update_status(f"LEARNING - RUN #:{i}")
+            self.start_learning()
+            success = True
+            for n in [5,10,15,20,30,40,60,80,100,150,200,300,400,600,1000]:
+                self.update_status(f"FIND PATH - RUN #:{i} NUM_DIRECTIONS #:{n}")
+                success = self.find_path(n)
+                if not success:
+                    break
+                f.write(str(self.rundata) + "\n")
+        f.close()
+
+    def find_path_handler(self):
+        self.find_path(self.NUM_DIRECTIONS)
+
+    def find_path(self,num_directions):
         self.selection_strategy_max = bool(self.strategy_var.get())
         self.apply_config()
         self.canvas.delete("path")
         self.canvas.update()
-        self.path(self.rat)
+        ret = self.path(self.rat,num_directions)
         self.print_board()
+        return ret
 
     def load_maze(self):
         print('loading maze')
@@ -176,8 +208,10 @@ class MemoryModel (object):
         rat.set_v_y(0)
 
     def move_mouse(self,rat):
-        for k in range(config.num_learning_steps):#rat.get_v() > rat.MIN:
-            self.update_status(f"{k}")
+        self.reset_mouse(rat)
+        displacements = []
+        time = 0
+        while not self.isOnLastCell(rat.get_x(),rat.get_y()):
             coords = [0,config.max_y_coord()]
             coords = rat.get_next_coor(rat.get_x(), rat.get_y())
             x_f = coords[0]
@@ -187,24 +221,26 @@ class MemoryModel (object):
             row = rat.get_y() // config.CELL_WIDTH
             col = rat.get_x()//config.CELL_WIDTH
 
-            for  i in range (-1,0,1):
-                for j in range (-1,0,1):
+            for  i in range (-1,2,1):
+                for j in range (-1,2,1):
                     if row+i >=0 and row+i <=config.NUMBER_OF_CELLS-1 and col+j>=0 and col+j <=config.NUMBER_OF_CELLS-1:
                         if self.board[int(row+i)][int(col+j)].is_travellable:
-                            arr = rat.intersect2(rat.get_x(),rat.get_y(),x_f,y_f,config.CELL_WIDTH*j,config.CELL_WIDTH*i)
-                            if arr[0]:
+                            # ORIGINAL arr = rat.intersect2(rat.get_x(),rat.get_y(),x_f,y_f,config.CELL_WIDTH*j,config.CELL_WIDTH*i)
+                            int_arr = rat.intersect2(rat.get_x(), rat.get_y(), x_f, y_f, config.CELL_WIDTH * (col+j), config.CELL_WIDTH *(row+ i))
+                            if int_arr[0]:
+                                arr = int_arr[1] # array of array of intersection points
+                                if len(arr) == 1:
+                                    x_f = arr[0][0]
+                                    y_f = arr[0][1]
                                 if len(arr) == 2:
-                                    x_f = arr[1][0]
-                                    y_f = arr[1][1]
-                                if len(arr) == 3:
-                                    distance1 = math.sqrt(math.pow(rat.get_x()-arr[1][0],2)+math.pow(rat.get_y()-arr[1][1],2))
-                                    distance2 = math.sqrt(math.pow(rat.get_x()-arr[2][0],2)+math.pow(rat.get_y()-arr[2][1],2))
+                                    distance1 = math.sqrt(math.pow(rat.get_x()-arr[0][0],2)+math.pow(rat.get_y()-arr[0][1],2))
+                                    distance2 = math.sqrt(math.pow(rat.get_x()-arr[1][0],2)+math.pow(rat.get_y()-arr[1][1],2))
                                     if distance1 > distance2:
-                                        x_f = arr[2][0]
-                                        y_f = arr[2][1]
-                                    else:
                                         x_f = arr[1][0]
                                         y_f = arr[1][1]
+                                    else:
+                                        x_f = arr[0][0]
+                                        y_f = arr[0][1]
 
                                 self.reset_velocity(rat)
                     vals = rat.off_grid(x_f, y_f)  # of the grid
@@ -213,25 +249,25 @@ class MemoryModel (object):
                         p2 = Point2D(x_f, y_f)
                         line = Segment2D(p1, p2)
                         if vals[1] == 0:
-                            int_point = intersection(line,Line2D((0,0),(0,2)))
+                            int_point = config.line_intersection(line,Line2D((0,0),(0,2)))
                             if int_point and len(int_point):
                                 x_f = float(int_point[0].x)
                                 y_f = float(int_point[0].y)
                             self.reset_velocity(rat)
                         elif vals[1] == 1:
-                            int_point = intersection(line, Line2D((600, 0), (600, 2)))
+                            int_point = config.line_intersection(line, Line2D((600, 0), (600, 2)))
                             if int_point and len(int_point):
                                 x_f = float(int_point[0].x)
                                 y_f = float(int_point[0].y)
                             self.reset_velocity(rat)
                         elif vals[1] == 2:
-                            int_point = intersection(line, Line2D((0, 0), (2, 0)))
+                            int_point = config.line_intersection(line, Line2D((0, 0), (2, 0)))
                             if int_point and len(int_point):
                                 x_f = float(int_point[0].x)
                                 y_f = float(int_point[0].y)
                             self.reset_velocity(rat)
                         elif vals[1] == 3:
-                            int_point = intersection(line, Line2D((0, 600), (2, 600)))
+                            int_point = config.line_intersection(line, Line2D((0, 600), (2, 600)))
                             if int_point and len(int_point):
                                 x_f = float(int_point[0].x)
                                 y_f = float(int_point[0].y)
@@ -246,6 +282,8 @@ class MemoryModel (object):
 
             if rat.get_t()%10 == 0:
                 self.my_maze.update_weight(rat)
+                zero_distance = sqrt(math.pow(rat.get_x()-0,2)+math.pow(rat.get_y()-599,2))
+                displacements.append(zero_distance)
 
             row = int((y_f)// config.CELL_WIDTH)
             col = int((x_f) // config.CELL_WIDTH)
@@ -253,16 +291,29 @@ class MemoryModel (object):
                 rat.move(x_f,y_f)
                 self.board[row][col].travelled = rat.get_t()
                 rat.set_t(rat.get_t()+1)
+                time = time + 1
             else:
                 config.p('*')
         # update for last time
         self.my_maze.update_weight(rat)
+        count = 0
+        for row in range (30):
+            for col in range(30):
+                if self.board[row][col].weight>0:
+                    count = count + 1
+        self.rundata.num_squares = count
+        self.rundata.learning_length = rat.get_distance()
+        self.rundata.displacements = displacements
+        self.rundata.time = time
+        self.update_status(f"Learning Length: {rat.get_distance()}")
 
     def isOnLastCell(self,x_f,y_f):
         # check to see the points are on last cell
         return  x_f > config.exit_cell_x1() and x_f < config.exit_cell_x2() and y_f > config.exit_cell_y1() and y_f < config.exit_cell_y2()
 
-    def path(self,rat):
+    def path(self,rat,num_directions):
+        learning_distance = rat.get_distance()
+        rat.set_distance(0)
         rat.set_x(0)
         rat.set_y(599)
         rat.set_v_x(0)
@@ -274,12 +325,16 @@ class MemoryModel (object):
         arr = []
         weights = []
         weights_map = {}
+        trap_count =  0
+        cont_count = 0
+        counter = 0
+
         while not int(self.board[int(rat.get_y()//config.CELL_WIDTH)][int(rat.get_x()//config.CELL_WIDTH)].get_weight()) == 2:
             weights.clear()
             arr.clear()
-            for i in range (20):
-                arr.append(float(np.random.random()*180))
-            for j in range (20):
+            for i in range (num_directions):
+                arr.append(float(np.random.random()*360))
+            for j in range (num_directions):
                 v_x = copy.copy(rat.get_v_x())
                 v_y = copy.copy(rat.get_v_y())
                 next_coords = rat.get_next_coor_directed(rat.get_x(), rat.get_y(), arr[j])
@@ -292,7 +347,7 @@ class MemoryModel (object):
                     tr = y_f//config.CELL_WIDTH
                     tc = x_f//config.CELL_WIDTH
                     w1 = self.board[int(y_f//config.CELL_WIDTH)][int(x_f//config.CELL_WIDTH)].get_weight()
-                    if not self.board[row][col].is_travellable and self.board[row][col].get_weight() > self.board[int(y_f//config.CELL_WIDTH)][int(x_f//config.CELL_WIDTH)].get_weight():
+                    if not self.board[row][col].is_travellable and self.board[row][col].get_weight() >= self.board[int(y_f//config.CELL_WIDTH)][int(x_f//config.CELL_WIDTH)].get_weight():
                         if self.selection_strategy_max:
                             weights.append([self.board[row][col].get_weight(), x_temp,y_temp])
                             weights_map[self.board[row][col].get_weight()] = [x_temp,y_temp]
@@ -307,16 +362,48 @@ class MemoryModel (object):
                     rat.set_v_y(v_y)
 
             if self.selection_strategy_max and weights_map:
-                b_max = weights_map[max(weights_map)]
+
+                if cont_count >= 100:
+                    weights_map.pop(max(weights_map))
+                    if weights_map:
+                        b_max = weights_map[max(weights_map)]
+                    else:
+                        return False
+                else:
+                    b_max = weights_map[max(weights_map)]
+                new_row = b_max[1] // 20
+                new_col = b_max[0] // 20
+                prev_row = rat.get_y() // 20
+                prev_col = rat.get_x() // 20
+                if new_row == prev_row and new_col == prev_col:
+                    cont_count +=1
+                    print("TRAPPED IN THE SAME CELL ",new_row,new_col)
+                else:
+                    cont_count =0
+                if cont_count >= 10:
+                    trap_count +=1
+                    print("TRAP COUNT INCR ",trap_count)
+                if trap_count > 2000:
+                    return False
                 rat.move(b_max[0], b_max[1])
-            #    max = -1
-            #    b_max = None
-            #    for entry in weights:
-            #        if entry[0] > max:
-            #            b_max = entry
-            #    rat.move(b_max[1],b_max[2])
 
 
+        # update rundata
+        self.rundata.num_directions =len(arr)
+        self.rundata.num_traps = trap_count
+        self.rundata.search_length = rat.get_distance()
+        return True
+
+    def reset_mouse(self, rat):
+        rat.set_x(0)
+        rat.set_y(599)
+        rat.set_v_x(0)
+        rat.set_v_y(0)
+        for row in range(30):
+            for col in range(30):
+                self.board[row][col].set_weight(-1)
+                self.board[row][col].travelled = -1
+                self.board[row][col].traced = False
 
     def print_board(self):
         # print header
@@ -332,9 +419,13 @@ class MemoryModel (object):
 
 
 def main():
+
     memmap = MemoryModel()
     memmap.init_board()
     memmap.draw_board()
+
+
+
 
 if __name__ == '__main__':
     main()
