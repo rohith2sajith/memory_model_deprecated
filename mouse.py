@@ -8,8 +8,8 @@ from datetime import datetime
 
 class Mouse(object):
     ALPHA = 0.875
-    SIGMA1 = 20
-    SIGMA2 = 20
+    SIGMA1 = 10
+    SIGMA2 = 10
     MEAN = 0
     MIN = 0.5
     MAX_Y = 30

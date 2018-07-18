@@ -20,6 +20,11 @@ class Maze(object):
                     #self.board[i][j].set_weight(max(self.board[i][j].get_weight(), 1/(mouse.get_t()-self.board[i][j].travelled)))
                     self.board[i][j].set_weight(1 / (mouse.get_t() - self.board[i][j].travelled))
 
+    def reassign_weight(self,mouse,new_row,new_col):
+        for i in range (config.NUMBER_OF_CELLS):
+            for j in range(config.NUMBER_OF_CELLS):
+                self.board[i][j].set_weight(self.board[new_row][new_col].storage[i][j])
+
     def save(self,filename):
         with open(filename,'w') as maz_file:
             for i in range(config.NUMBER_OF_CELLS):

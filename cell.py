@@ -3,13 +3,21 @@ import random
 import maze
 import mouse
 class Cell(object):
-    def __init__(self, weight=-1, x=-1, y=-1, is_travellable=-1, travelled=-1, traced=-1):
+    def __init__(self, weight=-1, x=-1, y=-1, is_travellable=-1, travelled=-1, first_travelled = -1, traced=-1):
         self.weight=weight
         self.x=x
         self.y=y
         self.is_travellable=is_travellable
         self.travelled = travelled
+        self.first_travelled = first_travelled
         self.traced = traced
+        self.storage = []
+        for i in range (30):
+            a_row = []
+            for j in range (30):
+                a_row.append(-1)
+            self.storage.append(a_row)
+
 
 
     def __str__(self):

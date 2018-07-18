@@ -21,14 +21,14 @@ def max_x_coord():
     return CELL_WIDTH * NUMBER_OF_CELLS # 600
 
 def exit_cell_x1():
-    return max_x_coord() - CELL_WIDTH  # 580
+    return 200
 def exit_cell_x2():
-    return max_x_coord()  # 600
+    return 220
 
 def exit_cell_y1():
-    return 0
+    return 300
 def exit_cell_y2():
-    return CELL_WIDTH  # 20
+    return 320
 
 def p(msg):
     if not debug_print:
