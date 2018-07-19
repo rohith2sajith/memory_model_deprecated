@@ -18,7 +18,7 @@ class MemoryModel (object):
     DEFAULT_WEIGHT =0.1  # default weight
     WALKABLE_CELL_COLOR = "white"
     BLOCKED_CELL_COLOR = "gray"
-    NUM_DIRECTIONS = 200
+    NUM_DIRECTIONS = 1000
 
 
     def __init__(self):
@@ -114,7 +114,7 @@ class MemoryModel (object):
                                               self.CELL_WIDTH * i,
                                               self.CELL_WIDTH * (j + 1),
                                               self.CELL_WIDTH * (i + 1),
-                                              fill=fill_color,tag=self.to_tag(i,j))
+                                              fill=fill_color)
         # you need to call this so that the GUI start running
 
         self.root.mainloop()
@@ -129,40 +129,23 @@ class MemoryModel (object):
         if self.iterations.get():
             config.num_learning_steps=int(self.iterations.get())
 
-    def to_tag(self,row,col):
-        return f"{row}-{col}"
-
-    def from_tag(self,tag):
-        parts = tag.split("-")
-        return int(parts[0]), int(parts[1])
-
     def on_clicked(self,e):
         if not self.marking_reward_space: # not in marking mode
             return
-        found_rectangle = False
-        shape =-1
-        shape_x = e.x
-        shape_y = e.y
-        while not found_rectangle:
-            shape = self.canvas.find_closest(shape_x, shape_y)
-            shape_tag = self.canvas.gettags(shape)[0]
-            if shape_tag != "path":
-                found_rectangle = True
-            else:
-                shape_x +=2
-                shape_y +=2
-
-        row, col = self.from_tag(self.canvas.gettags(shape)[0])
+        row = e.y//20
+        col = e.x //20
         fill_color=""
         if not self.reward_start:  # we are selecting start
-            fill_color = "red"
+            fill_color = "red2"
             self.reward_start = [e.x,e.y]
         elif not self.reward_end:
-            fill_color = "green"
-            self.reward_end = [row,col]
+            fill_color = "purple"
+            self.reward_end = [e.x,e.y]
             self.marking_reward_space = False
 
-        self.canvas.itemconfig(shape, fill=fill_color)
+        self.canvas.create_oval(e.x, e.y, e.x + config.MOUSE_RADIUS,
+                                            e.y + config.MOUSE_RADIUS,
+                                            fill=fill_color)
 
     def start_learning(self):
         self.rundata = rundata.RunData()
@@ -212,7 +195,6 @@ class MemoryModel (object):
         return ret
 
     def load_maze(self):
-        print('loading maze')
         file_path = filedialog.askopenfilename()
         self.my_maze.load(file_path)
 
@@ -356,11 +338,11 @@ class MemoryModel (object):
                 self.my_maze.update_weight(rat)
                 rat.move(x_f,y_f)
                 self.board[row][col].travelled = rat.get_t()
-                if self.board[row][col].first_travelled == -1:
-                    self.board[row][col].first_travelled = rat.get_t()
-                    for a in range (30):
-                        for b in range (30):
-                            self.board[row][col].storage[a][b] = self.board[a][b].get_weight()
+                self.my_maze.update_weight(rat)
+                self.board[row][col].first_travelled = rat.get_t()
+                for a in range (30):
+                    for b in range (30):
+                        self.board[row][col].storage[a][b] = self.board[a][b].get_weight()
 
                 rat.set_t(rat.get_t()+1)
                 time = time + 1
@@ -388,17 +370,37 @@ class MemoryModel (object):
             reward_row = 10
             reward_col = 10
             if self.reward_end:
-               reward_row = self.reward_end[0]
-               reward_col = self.reward_end[1]
+                reward_x = self.reward_end[0]
+                reward_y = self.reward_end[1]
+                reward_row = reward_y // 20
+                reward_col = reward_x // 20
             self.my_maze.reassign_weight(rat,reward_row,reward_col)
+        else:
+            reward_x = rat.get_x()
+            reward_y = rat.get_y()
+        self.print_board()
         learning_distance = rat.get_distance()
         rat.set_distance(0)
         starting_x = 0
         starting_y = 599
-        if special and not self.reward_start:
+        if special and self.reward_start:
             starting_x = self.reward_start[0]
             starting_y = self.reward_start[1]
-
+            start_row = starting_y // 20
+            start_col = starting_x // 20
+            if self.board[start_row][start_col].travelled > self.board[reward_row][reward_col].travelled and self.board[start_row][start_col].travelled == self.board[start_row][start_col].first_travelled:
+                self.print_board()
+                self.my_maze.reassign_weight(rat, start_row, start_col)
+                self.print_board()
+                for s in range (30):
+                    for t in range (30):
+                        if not self.board[s][t].get_weight() == -1 and not self.board[s][t].get_weight() == 1:
+                            if not s == reward_row or not t == reward_col:
+                                self.board[s][t].set_weight(math.log(1/(self.board[s][t].get_weight()),1/(self.board[reward_row][reward_col].get_weight())))
+                        if self.board[s][t].get_weight() >= 1:
+                            self.board[s][t].set_weight(-1)
+                self.board[reward_row][reward_col].set_weight(1)
+        self.print_board()
         rat.set_x(starting_x)
         rat.set_y(starting_y)
         rat.set_v_x(0)
@@ -414,7 +416,7 @@ class MemoryModel (object):
         cont_count = 0
         counter = 0
 
-        while not int(self.board[int(rat.get_y()//config.CELL_WIDTH)][int(rat.get_x()//config.CELL_WIDTH)].get_weight()) == 2:
+        while not math.pow(math.pow(reward_x-rat.get_x(),2)+math.pow(reward_y-rat.get_y(),2),1/2) < 10:
             weights.clear()
             arr.clear()
             for i in range (num_directions):
@@ -447,7 +449,6 @@ class MemoryModel (object):
                     rat.set_v_y(v_y)
 
             if self.selection_strategy_max and weights_map:
-
                 if cont_count >= 100:
                     weights_map.pop(max(weights_map))
                     if weights_map:
@@ -462,19 +463,18 @@ class MemoryModel (object):
                 prev_col = rat.get_x() // 20
                 if new_row == prev_row and new_col == prev_col:
                     cont_count +=1
-                    print("TRAPPED IN THE SAME CELL ",new_row,new_col)
+                    config.pl(f"TRAPPED IN THE SAME CELL {new_row} {new_col}")
                 else:
                     cont_count =0
                 if cont_count >= 10:
                     trap_count +=1
-                    print("TRAP COUNT INCR ",trap_count)
+                    config.pl(f"TRAP COUNT INCR {trap_count}")
                 if trap_count > 2000:
                     return False
                 rat.move(b_max[0], b_max[1])
-
-
+                #print(f"Moving to {b_max[0]},{b_max[1]} {b_max[1]//20} {b_max[0]//20}")
         # update rundata
-        self.rundata.num_directions =len(arr)
+        self.rundata.num_directions = len(arr)
         self.rundata.num_traps = trap_count
         self.rundata.search_length = rat.get_distance()
         return True
@@ -504,13 +504,9 @@ class MemoryModel (object):
 
 
 def main():
-
     memmap = MemoryModel()
     memmap.init_board()
     memmap.draw_board()
-
-
-
 
 if __name__ == '__main__':
     main()

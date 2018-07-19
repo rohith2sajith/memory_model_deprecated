@@ -8,7 +8,7 @@ from datetime import datetime
 
 class Mouse(object):
     ALPHA = 0.875
-    SIGMA1 = 10
+    SIGMA1 = 5
     SIGMA2 = 10
     MEAN = 0
     MIN = 0.5
@@ -142,7 +142,6 @@ class Mouse(object):
         #  for coord_point in   int_result[1]:
         #     x = coord_point[0]
         #     y = coord_point[1]
-        print(a, b, c, d, lower_x, lower_y)
         #p1 = Point2D(a, b)
         #p2 = Point2D(c, d)
         if a == c and b == d:
@@ -188,7 +187,9 @@ class Mouse(object):
         # draw line
         distance = math.sqrt(math.pow(x-current_x,2)+math.pow(y-current_y,2))
         self.distance += distance
-        config.pl(f"drawing line ({current_x},{current_y}) - ({x},{y}) - {distance}")
+        #config.pl(f"drawing line ({current_x},{current_y}) - ({x},{y}) - {distance}")
+        if distance > 80:
+            print("hsh")
         self.memorymodel.draw_line(current_x,current_y,x,y)
         self.mouse_shape = self.memorymodel.update_circle(self.mouse_shape,x,y)
         self.set_x(x) # save x an y
