@@ -22,7 +22,7 @@ class Cell(object):
 
     def __str__(self):
         #return f'({self.x},{self.y},{self.weight} )'
-        return "{:8.4f} ".format(self.weight)
+        return "{:8.4f} ".format(self.weight/(1000))
 
     def get_weight(self):
         return self.weight

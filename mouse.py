@@ -12,7 +12,7 @@ class Mouse(object):
     SIGMA2 = 10
     MEAN = 0
     MIN = 0.5
-    MAX_Y = 30
+    MAX_Y = 50
 
     def __init__(self,x,y,v_x,v_y,t,memorymodel):
         self.x=x
@@ -129,8 +129,8 @@ class Mouse(object):
             return [True,3]
         else:
             return [False,0]
-
-    def intersect2(self, a, b, c, d, lower_x, lower_y):
+    @staticmethod
+    def intersect2(a, b, c, d, lower_x, lower_y):
 
         # if not interseaction it will return [False]
         # if there is one interection it will return [True, [ [x1,y1] ] ]
@@ -142,43 +142,42 @@ class Mouse(object):
         #  for coord_point in   int_result[1]:
         #     x = coord_point[0]
         #     y = coord_point[1]
-        #p1 = Point2D(a, b)
-        #p2 = Point2D(c, d)
+        # p1 = Point2D(a, b)
+        # p2 = Point2D(c, d)
         if a == c and b == d:
-            return [False, 0,0]
+            return [False, 0, 0]
 
-        given_segment = [[a,b],[c,d]]#Segment2D(p1, p2) # given segment
+        given_segment = [[a, b], [c, d]]  # Segment2D(p1, p2) # given segment
         # create segments for each of the four edges
-        s1 = [[lower_x, lower_y],[lower_x, lower_y+config.CELL_WIDTH]]#Segment2D((lower_x, 0), (lower_x, 2))
-        s2 = [[lower_x, lower_y+config.CELL_WIDTH],[lower_x + config.CELL_WIDTH, lower_y+config.CELL_WIDTH]] #Segment2D((lower_x + 20, 0), (lower_x + 20, 2))
-        s3 = [[lower_x + config.CELL_WIDTH, lower_y+config.CELL_WIDTH],[lower_x + config.CELL_WIDTH, lower_y]] #Segment2D((0, lower_y), (2, lower_y))
-        s4 = [[lower_x + config.CELL_WIDTH, lower_y],[lower_x, lower_y]]#Segment2D((0, lower_y + 20), (2, lower_y + 20))
+        s1 = [[lower_x, lower_y], [lower_x, lower_y + config.CELL_WIDTH]]  # Segment2D((lower_x, 0), (lower_x, 2))
+        s2 = [[lower_x, lower_y + config.CELL_WIDTH], [lower_x + config.CELL_WIDTH, lower_y + config.CELL_WIDTH]]  # Segment2D((lower_x + 20, 0), (lower_x + 20, 2))
+        s3 = [[lower_x + config.CELL_WIDTH, lower_y + config.CELL_WIDTH], [lower_x + config.CELL_WIDTH, lower_y]]  # Segment2D((0, lower_y), (2, lower_y))
+        s4 = [[lower_x + config.CELL_WIDTH, lower_y], [lower_x, lower_y]]  # Segment2D((0, lower_y + 20), (2, lower_y + 20))
 
-        int_point_list=[]
+        int_point_list = []
         # check each segment intersection with given segment
         # if intersect return True and x and y cordinated
-        x,y = config.line_intersection(given_segment,s1)
+        x, y = config.line_intersection(given_segment, s1)
 
         if x != None:
-            int_point_list.append([x,y])
+            int_point_list.append([x, y])
 
-        x,y = config.line_intersection(given_segment, s2)
+        x, y = config.line_intersection(given_segment, s2)
         if x != None:
-            int_point_list.append([x,y])
+            int_point_list.append([x, y])
 
-        x,y = config.line_intersection(given_segment, s3)
+        x, y = config.line_intersection(given_segment, s3)
         if x != None:
-            int_point_list.append([x,y])
+            int_point_list.append([x, y])
 
-        x,y = config.line_intersection(given_segment, s4)
+        x, y = config.line_intersection(given_segment, s4)
         if x != None:
-            int_point_list.append([x,y])
+            int_point_list.append([x, y])
         if len(int_point_list):
             ret_list = [True]
             ret_list.append(int_point_list)
             return ret_list
         return [False]
-
 
 
     def move(self,x,y):
