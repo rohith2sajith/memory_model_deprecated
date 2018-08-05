@@ -31,6 +31,8 @@ class MemoryModel (object):
     def draw_board(self):
         self.root = tkinter.Tk()  # start the gui engine
         self.strategy_var = IntVar()
+        self.avoid_gray  = IntVar()
+
         self.strategy_var.set(1)
         ## TOP CONTROL BUTTON FRAME
         self.top_frame = tkinter.Frame(self.root)
@@ -67,6 +69,7 @@ class MemoryModel (object):
                                            width=20)
 
         self.strategy = tkinter.Checkbutton(self.top_frame,text="Max weight strategy", var = self.strategy_var)
+        self.avoid_gray_chk = tkinter.Checkbutton(self.top_frame, text="Avoid gray", var=self.avoid_gray)
 
         self.learning_button.grid(row=0, column=0)
         self.path_button.grid(row=0, column=1)
@@ -78,6 +81,7 @@ class MemoryModel (object):
         self.iterations.grid(row=1, column=1)
         #self.apply_button.grid(row=1, column=2)
         self.strategy.grid(row=1,column=3)
+        self.avoid_gray_chk.grid(row=1,column=4)
 
         ## BOARD CANVASE FRAME
         # you can draw rectangle , lines points etc in a canvas
@@ -283,6 +287,112 @@ class MemoryModel (object):
                     return [True,arr[0][0],arr[0][1]]
         return [False]
 
+    def is_in_range(self,line, x, y):
+        x1 = line[0][0]
+        y1 = line[0][1]
+        x2 = line[1][0]
+        y2 = line[1][1]
+        if x1 != x and x2 != x:
+            if min(x1, x2, x) == x or max(x1, x2, x) == x:
+                return False
+        if y1 != y and y2 != y:
+            if min(y1, y2, y) == y or max(y1, y2, y) == y:
+                return False
+        return True
+
+    def point_given_distance(self,x1, y1, x2, y2, l):
+        # find slope
+        infinite_slope = x2 == x1
+        m = 0
+        a_x = a_y = b_x = b_y = 0
+        if not infinite_slope:
+            m = (y2 - y1) / (x2 - x1)
+        if infinite_slope:
+            a_x = x1
+            a_y = y1 + l
+            b_x = x1
+            b_y = y1 - l
+        elif m == 0:
+            a_x = x1 + l
+            a_y = y1
+            b_x = x1 - l
+            b_y = y1
+        else:
+            dx = (l / math.sqrt(1 + (m * m)))
+            dy = m * dx
+            a_x = x1 + dx
+            a_y = y1 + dy
+            b_x = x1 - dx
+            b_y = y1 - dy
+        # not make sure points are with in the segment
+        line = [[x1, y1], [x2, y2]]
+        if self.is_in_range(line, a_x, a_y):
+            return [a_x, a_y]
+        if self.is_in_range(line, b_x, b_y):
+            [b_x, b_y]
+        return []
+
+
+    def is_intersect_wth_gray_cells_new(self,x1,y1,new_x, new_y):
+        #if not bool(self.avoid_gray.get()):
+        #    return False
+        self.print_board()
+        start_row = int(min(y1,new_y)//config.CELL_WIDTH)
+        start_col = int(min(x1, new_x) // config.CELL_WIDTH)
+        end_row = int(max(y1, new_y) // config.CELL_WIDTH)
+        end_col = int(max(x1, new_x) // config.CELL_WIDTH)
+        for row in range(start_row,end_row+1):
+            for col in range(start_col, end_col + 1):
+                if self.board[row][col].is_travellable:
+                    lower_x = config.CELL_WIDTH * col
+                    lower_y = config.CELL_WIDTH * row
+                    arr = mouse.Mouse.intersect2(x1, y1, new_x, new_y, lower_x, lower_y)
+                    if arr[0]:
+                        print(f"AVOIDING ({new_x},{new_y})")
+                        return True
+        return False
+
+    def is_intersect_wth_gray_cells(self, rat, new_x, new_y):
+        return self.is_intersect_wth_gray_cells_x(rat.get_x(),rat.get_y(),new_x, new_y,bool(self.avoid_gray.get()),self.board)
+
+    def is_intersect_wth_gray_cells_x(self,x1,y1, new_x, new_y,avoid_gray_flag,board):
+        if not avoid_gray_flag:
+            return False
+        length = math.sqrt(math.pow(x1 - new_x, 2) + math.pow(y1 - new_y, 2))
+
+        d=0
+        delta=1
+
+        prev_row = -1
+        prev_col = -1
+        my_paths = ""
+        while d<=math.ceil(length):
+            point_in_line = self.point_given_distance(x1,y1,new_x,new_y,d)
+            if point_in_line:
+                row = int(point_in_line[1]//config.CELL_WIDTH)
+                col = int(point_in_line[0]//config.CELL_WIDTH)
+                if prev_row != row or prev_col != col:
+                    prev_row = row
+                    prev_col = col
+                    my_paths = f"{my_paths}, ({row},{col}) "
+                    print(f"CELL {row},{col}")
+                    if board[row][col].is_travellable:  # gray cell
+                        #print(f"AVOIDING {row},{col}")
+                        return True
+                        #lower_x = config.CELL_WIDTH * col
+                        #lower_y = config.CELL_WIDTH * row
+                        #arr = rat.intersect2(rat.get_x(), rat.get_y(), new_x, new_y, lower_x, lower_y)
+                        #if arr[0]:
+                            #print(f"AVOIDING JUMP ({row},{col})")
+                        #    return True
+            d +=delta
+        s_row = y1//config.CELL_WIDTH
+        s_col = x1//config.CELL_WIDTH
+        e_row = new_y // config.CELL_WIDTH
+        e_col = new_x // config.CELL_WIDTH
+        print(f"({s_row},{s_col}) - ({e_row},{e_col}) LENGTH {length} paths {my_paths}")
+        return False
+
     def move_mouse(self,rat):
         self.reset_mouse(rat)
         displacements = []
@@ -309,7 +419,7 @@ class MemoryModel (object):
                                 if len(arr) == 1:
                                     x_f = arr[0][0]
                                     y_f = arr[0][1]
-                                if len(arr) == 2:
+                                elif len(arr) == 2:
                                     distance1 = math.sqrt(math.pow(rat.get_x()-arr[0][0],2)+math.pow(rat.get_y()-arr[0][1],2))
                                     distance2 = math.sqrt(math.pow(rat.get_x()-arr[1][0],2)+math.pow(rat.get_y()-arr[1][1],2))
                                     if distance1 > distance2:
@@ -378,6 +488,7 @@ class MemoryModel (object):
                 time = time + 1
             else:
                 config.p('*')
+            self.update_status(f"Learning:{q}")
         # update for last time
         self.my_maze.update_weight(rat)
         count = 0
@@ -419,18 +530,19 @@ class MemoryModel (object):
             start_row = starting_y // 20
             start_col = starting_x // 20
             if self.board[start_row][start_col].travelled > self.board[reward_row][reward_col].travelled and self.board[start_row][start_col].travelled == self.board[start_row][start_col].first_travelled:
+                self.print_board()
                 self.my_maze.reassign_weight(rat, start_row, start_col)
                 self.print_board()
-                for s in range (30):
-                    for t in range (30):
+                for s in range(30):
+                    for t in range(30):
                         if not self.board[s][t].get_weight() == -1 and not self.board[s][t].get_weight() == 1:
                             if not s == reward_row or not t == reward_col:
-                                #self.board[s][t].set_weight(math.log(1/(self.board[s][t].get_weight()),1/(self.board[reward_row][reward_col].get_weight())))
-                                self.board[s][t].set_weight(1/(self.board[s][t].get_weight()))
-                        if self.board[s][t].get_weight() >= 1/(self.board[reward_row][reward_col].get_weight()):
+                                # self.board[s][t].set_weight(math.log(1/(self.board[s][t].get_weight()),1/(self.board[reward_row][reward_col].get_weight())))
+                                self.board[s][t].set_weight(1 / (self.board[s][t].get_weight()))
+                        if self.board[s][t].get_weight() >= 1 / (self.board[reward_row][reward_col].get_weight()):
                             self.board[s][t].set_weight(-1)
-                self.board[reward_row][reward_col].set_weight(1/(self.board[reward_row][reward_col].get_weight()))
-        self.print_board()
+                self.board[reward_row][reward_col].set_weight(1 / (self.board[reward_row][reward_col].get_weight()))
+            self.print_board()
         rat.set_x(starting_x)
         rat.set_y(starting_y)
         rat.set_v_x(0)
@@ -465,13 +577,16 @@ class MemoryModel (object):
                     tc = x_f//config.CELL_WIDTH
                     w1 = self.board[int(y_f//config.CELL_WIDTH)][int(x_f//config.CELL_WIDTH)].get_weight()
                     if not self.board[row][col].is_travellable and self.board[row][col].get_weight() >= self.board[int(y_f//config.CELL_WIDTH)][int(x_f//config.CELL_WIDTH)].get_weight():
-                        if not self.is_intersect_wth_gray_cells(rat, x_temp, y_temp):
+                        if not self.is_intersect_wth_gray_cells_new(rat.get_x(),rat.get_y(),x_temp,y_temp):
                             if self.selection_strategy_max:
+                                print(f"Adding ({x_temp},{y_temp})")
                                 weights.append([self.board[row][col].get_weight(), x_temp,y_temp])
                                 weights_map[self.board[row][col].get_weight()] = [x_temp,y_temp]
+                            else:
+                                rat.move(x_temp,y_temp)
+                                break
                         else:
-                            rat.move(x_temp,y_temp)
-                            break
+                            print(f"AVOIDED POINT ({x_temp},{y_temp})")
                     else:
                         rat.set_v_x(v_x)
                         rat.set_v_y(v_y)
@@ -497,79 +612,20 @@ class MemoryModel (object):
                     config.pl(f"TRAPPED IN THE SAME CELL {new_row} {new_col}")
                 else:
                     cont_count =0
-                if cont_count == 10:
+                if cont_count >= 10:
                     trap_count +=1
                     config.pl(f"TRAP COUNT INCR {trap_count}")
-                if cont_count > 100:
-                    self.board[int(rat.get_y()//20)][int(rat.get_x()//20)].set_weight(-1)
-                    cont_count = 0
+                if trap_count > 2000:
+                    return False
                 rat.move(b_max[0], b_max[1])
-                print(f"Moving to {b_max[0]},{b_max[1]} {b_max[1]//20} {b_max[0]//20}")
+                print()
+                print("---------------------")
+                #print(f"Moving to {b_max[0]},{b_max[1]} {b_max[1]//20} {b_max[0]//20}")
         # update rundata
         self.rundata.num_directions = len(arr)
         self.rundata.num_traps = trap_count
         self.rundata.search_length = rat.get_distance()
         return True
-
-    def is_in_range(self, line, x, y):
-        x1 = line[0][0]
-        y1 = line[0][1]
-        x2 = line[1][0]
-        y2 = line[1][1]
-        if x1 != x and x2 != x:
-            if min(x1, x2, x) == x or max(x1, x2, x) == x:
-                return False
-        if y1 != y and y2 != y:
-            if min(y1, y2, y) == y or max(y1, y2, y) == y:
-                return False
-        return True
-
-    def point_given_distance(self, x1, y1, x2, y2, l):
-        # find slope
-        infinite_slope = x2 == x1
-        m = 0
-        a_x = a_y = b_x = b_y = 0
-        if not infinite_slope:
-            m = (y2 - y1) / (x2 - x1)
-        if infinite_slope:
-            a_x = x1
-            a_y = y1 + l
-            b_x = x1
-            b_y = y1 - l
-        elif m == 0:
-            a_x = x1 + l
-            a_y = y1
-            b_x = x1 - l
-            b_y = y1
-        else:
-            dx = (l / math.sqrt(1 + (m * m)))
-            dy = m * dx
-            a_x = x1 + dx
-            a_y = y1 + dy
-            b_x = x1 - dx
-            b_y = y1 - dy
-        # not make sure points are with in the segment
-        line = [[x1, y1], [x2, y2]]
-        if self.is_in_range(line, a_x, a_y):
-            return [a_x, a_y]
-        if self.is_in_range(line, b_x, b_y):
-            [b_x, b_y]
-        return []
-
-    def is_intersect_wth_gray_cells(self, rat, new_x, new_y):
-        start_row = int(min(rat.get_y(), new_y) // config.CELL_WIDTH)
-        start_col = int(min(rat.get_x(), new_x) // config.CELL_WIDTH)
-        end_row = int(max(rat.get_y(), new_y) // config.CELL_WIDTH)
-        end_col = int(max(rat.get_x(), new_x) // config.CELL_WIDTH)
-        for row in range(start_row, end_row + 1):
-            for col in range(start_col, end_col + 1):
-                if self.board[row][col].is_travellable:
-                    lower_x = config.CELL_WIDTH * col
-                    lower_y = config.CELL_WIDTH * row
-                    arr = rat.intersect2(rat.get_x(), rat.get_y(), new_x, new_y, lower_x, lower_y)
-                    if arr[0]:
-                        return True
-        return False
 
     def reset_mouse(self, rat):
         rat.set_x(0)
@@ -599,6 +655,7 @@ def main():
     memmap = MemoryModel()
     memmap.init_board()
     memmap.draw_board()
+    #print(memmap.is_intersect_wth_gray_cells_new(98.04573113608151,462.197068030155,70.80499047146857,433.13521234090973))
 
 if __name__ == '__main__':
     main()
