@@ -7,12 +7,13 @@ import config as config
 from datetime import datetime
 
 class Mouse(object):
-    ALPHA = 0.875
-    SIGMA1 = 5
+    ALPHA = 0.9
+    SIGMA1 = 10
     SIGMA2 = 10
     MEAN = 0
     MIN = 0.5
     MAX_Y = 30
+    GAMMA = 0.9
 
     def __init__(self,x,y,v_x,v_y,t,memorymodel):
         self.x=x
@@ -187,8 +188,8 @@ class Mouse(object):
         distance = math.sqrt(math.pow(x-current_x,2)+math.pow(y-current_y,2))
         self.distance += distance
         #config.pl(f"drawing line ({current_x},{current_y}) - ({x},{y}) - {distance}")
-        if distance > 80:
-            print("hsh")
+        if distance > 40:
+            print("hi")
         self.memorymodel.draw_line(current_x,current_y,x,y)
         self.mouse_shape = self.memorymodel.update_circle(self.mouse_shape,x,y)
         self.set_x(x) # save x an y

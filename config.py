@@ -12,7 +12,11 @@ MOUSE_FILL_COLOR = "red"
 SUGGESTED_MOUSE_FILL_COLOR = "yellow"
 PATH_LINE_COLOR = "green"
 num_learning_steps = 1000
-debug_print=False
+LOG_LEVEL_DEBUG=3
+LOG_LEVEL_INFO=2
+LOG_LEVEL_NONE=1
+log_level = LOG_LEVEL_INFO
+
 
 def max_y_coord():
     return CELL_WIDTH * NUMBER_OF_CELLS # 600
@@ -30,15 +34,24 @@ def exit_cell_y1():
 def exit_cell_y2():
     return 320
 
-def p(msg):
-    if not debug_print:
+def d(msg):
+    if log_level<LOG_LEVEL_DEBUG:
         return
     print(msg,end='')
-def pl(*msg):
-    if not debug_print:
+def i(msg):
+    if  log_level < LOG_LEVEL_INFO:
         return
-    p(msg)
-    print()
+    print(msg,end='')
+
+def dl(msg):
+    if log_level<LOG_LEVEL_DEBUG:
+        return
+    print(msg)
+def il(msg):
+    if log_level < LOG_LEVEL_INFO:
+        return
+    print(msg)
+
 def is_in_range(x,y,line):
     x1 = line[0][0]
     y1 = line[0][1]
