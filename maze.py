@@ -5,14 +5,21 @@ import math
 import numpy as np
 import numpy.linalg
 import scipy.stats as sp
-
+import copy
 
 class Maze(object):
-    def __init__(self,board,matrix,w,T):
+    def __init__(self,memboard,board,matrix,w,T):
+        self.memboard = memboard
         self.board = board
         self.matrix = matrix
         self.w = w
         self.T = T
+        self.damage_interval = -1 # no damage
+        self.damage_count = 0 # no dmage 1 mean once -1 means forever
+        self.damaged_cells=[]
+        self.cells_to_damage=[]
+        self.damage_timer = 0
+        self.damage_policy_spread=False
         #self.setup_maze(self.board)
 
     def update_weight(self,mouse):
@@ -269,4 +276,133 @@ class Maze(object):
         num1 = math.exp(-(float(x) - float(mean)) ** 2 / (2 * var))
         num2 = math.exp(-(float(y) - float(mean)) ** 2 / (2 * var))
         return (num1-num2) / denom
+
+    def damage_a_cell(self, row,col):
+        """
+        Damage the given cell by making the value to 0
+        Also change the color of the cell to black
+        :param row:
+        :param col:
+        :return:
+        """
+        # modify T
+        self.T[row*30+col] = [0]*900
+        # now make the color of the cell to be black
+        self.memboard.make_cell_damaged(row,col)
+        print(f"Damaging cell {row} {col}")
+
+
+    def a_random_cell(self):
+        """
+        Return a valid random row and column that is not gray cell
+        :return:
+        """
+        valid_cell = False
+        while not valid_cell:
+            row = int(np.random.random() *30)
+            col = int(np.random.random() *30)
+            valid_cell = not self.is_blocked_cell(row,col)
+        return [row,col]
+
+    def setup_damage(self,interval,count,spread=False,row=None,col=None):
+        """
+
+        :param interval: time interval. For each of this interval we will do one or more damage
+        :param count:  how many damage -1 means for ever
+        :param spread: spread the damage or not
+        :param row: you optionalluy specify a row and column
+        :param col:
+        :return:
+        """
+        # if we ask to spread the damage then make the count as -1 indicating goes for ever
+        if spread:
+            count = -1
+        self.damage_interval = interval
+        self.damage_count = count
+        self.damage_timer = 0
+        self.damage_policy_spread = spread
+
+        # cells_to_damage is an array that container next cell(s) to damage
+        # we intiailze with the value given or a random value.
+        # when damage() is called we will take from this array and damage it
+        # and then add its adjucents cells to this array cells_to_damage
+        # and it goes for ever
+        if row:
+            self.cells_to_damage.append([row,col])
+        else:
+            self.cells_to_damage.append(self.a_random_cell())
+
+    def find_adjacent_cells(self,row,col):
+        """
+        Find adjacent cells for the given cell. check to see it is valid and not gray
+        and return it
+        :param row:
+        :param col:
+        :return:
+        """
+        cell_list = []
+        for i in range(-1,2,1):
+            for j in range(-1, 2, 1):
+                if i != 0 or j != 0:
+                    if row + i >= 0 and row + i <= config.NUMBER_OF_CELLS - 1 and col + j >= 0 and col + j <= config.NUMBER_OF_CELLS - 1:
+                        if not self.is_blocked_cell(row + i,col + j):
+                            cell_list.append([row + i,col + j])
+
+        return cell_list
+
+    def update_next_damage_cells(self):
+        """
+        Update the next cells to damage
+        :return:
+        """
+        # damaged_cells lists holds the array that are already damaged
+        # this is to avoid repeating
+        for r in self.cells_to_damage:
+            self.damaged_cells.append(r)
+
+        # make a deep copy
+        cc = copy.deepcopy(self.cells_to_damage)
+        self.cells_to_damage.clear() # clear array we already damaged it and moved damaged array already
+
+        if self.damage_policy_spread:
+            # for each find adjecent array and add it for next time damage is called
+            for r in cc:
+                for a in self.find_adjacent_cells(r[0],r[1]):
+                    if a not in self.damaged_cells and a not in self.cells_to_damage :
+                        self.cells_to_damage.append(a)
+
+    def is_blocked_cell(self,row,col):
+        """
+        Is the cell a gray cell
+        :param row:
+        :param col:
+        :return:
+        """
+        return self.board[row][col].is_travellable
+
+
+    def damage(self):
+        """
+        Damage
+        Based on the interval specified it will start the damaging or not
+        The self.cells_to_damage list contains next cells to damage. Go throught it and damage
+        And then find its adjucent cells and add to the list for next iteration
+        :return:
+        """
+        # if already damaged the number of items to damage is done return
+        if self.damage_count ==0:
+            return
+        # damage_timer increament every time damage is called and if it is ewual to the intercal damage and reset the counter
+        if self.damage_timer == self.damage_interval:
+            # damage what ever in the list
+            for r in self.cells_to_damage:
+                self.damage_a_cell(r[0],r[1])
+            # now add with new ie adjecent for each of them in the list
+            self.update_next_damage_cells()
+            self.damage_count -=1
+            self.damage_timer = 0
+        else:
+            self.damage_timer +=1
+
+
 

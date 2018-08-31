@@ -11,9 +11,11 @@ from sympy.core.numbers import *
 import copy
 from tkinter import filedialog
 from tkinter import IntVar
+from tkinter import StringVar
 from datetime import datetime
 
 class MemoryModel (object):
+
     CELL_WIDTH = 20 # square width
     DEFAULT_WEIGHT =0.1  # default weight
     WALKABLE_CELL_COLOR = "white"
@@ -22,7 +24,7 @@ class MemoryModel (object):
 
 
     def __init__(self):
-        self.selection_strategy_max = True
+        self.selection_strategy_max = True #max selection startgy deprecate it
         self.rundata = 1
         self.marking_reward_space = False
         self.reward_start = None
@@ -32,60 +34,82 @@ class MemoryModel (object):
         self.root = tkinter.Tk()  # start the gui engine
         self.strategy_var = IntVar()
         self.avoid_gray  = IntVar()
+        self.damage_interval_var = StringVar()
+        self.damage_var = IntVar()
+        self.spread_damage_var = IntVar()
+
         self.avoid_gray.set(1)
         self.strategy_var.set(1)
+        self.damage_var.set(1)
+        self.damage_interval_var.set("1")
+
         ## TOP CONTROL BUTTON FRAME
         self.top_frame = tkinter.Frame(self.root)
         self.top_frame.grid(row=0, column=0)
+        self.buttons_frame = tkinter.Frame(self.top_frame)
+        self.config_frame = tkinter.Frame(self.top_frame)
+        self.buttons_frame.grid(row=0,column=0)
+        self.config_frame.grid(row=1, column=0)
+
         ## CONTROLS ROW 1
-        self.learning_button = tkinter.Button(self.top_frame, text='START LEARNING',
+        button_panel_label = tkinter.Label(self.buttons_frame, text='---CONTROLS---')
+        self.learning_button = tkinter.Button(self.buttons_frame, text='START LEARNING',
                                         width=20,
                                         command=self.start_learning)
 
-        self.path_button = tkinter.Button(self.top_frame, text='FIND PATH',
+        self.path_button = tkinter.Button(self.buttons_frame, text='FIND PATH',
                                               width=20,
                                               command=self.find_path_handler_regular)
 
-        self.collect_data_button = tkinter.Button(self.top_frame, text='COLLECT DATA',
+        self.collect_data_button = tkinter.Button(self.buttons_frame, text='COLLECT DATA',
                                           width=20,
                                           command=self.collect_data)
-        self.special_path_button = tkinter.Button(self.top_frame, text='SPECIAL PATH',
+        self.special_path_button = tkinter.Button(self.buttons_frame, text='SPECIAL PATH',
                                                   width=20,
                                                   command=self.find_special_path_handler)
-        self.mark_goal_button = tkinter.Button(self.top_frame, text='SELECT REWARD SPACE',
+        self.mark_goal_button = tkinter.Button(self.buttons_frame, text='SELECT REWARD SPACE',
                                                   width=20,
                                                   command=self.start_marking_reward_handler)
-        self.omnicient_button = tkinter.Button(self.top_frame, text='OMNICIENT SUCCESSOR',
+        self.omnicient_button = tkinter.Button(self.buttons_frame, text='OMNICIENT SUCCESSOR',
                                                   width=20,
                                                   command=self.find_path_handler)
 
-        #self.load_maze_button = tkinter.Button(self.top_frame, text='LOAD MAZE',
-        #                                      width=20,
-        #                           command=self.load_maze)
+
         ## CONTROL ROW 2
-        self.iterations = tkinter.Entry (self.top_frame)
+        config_panel_label = tkinter.Label(self.config_frame, text='--- CONFIG PARAMS ----')
+        self.iterations = tkinter.Entry (self.config_frame,width=10)
+        damage_interval_label = tkinter.Label(self.config_frame, text='DAMAGE INTERVAL',
+                              width=20)
+        self.damage_interval_entry = tkinter.Entry (self.config_frame,width=5,textvariable = self.damage_interval_var)
+
         self.iterations.insert(0,str(config.num_learning_steps))
-        #self.apply_button = tkinter.Button(self.top_frame, text='APPLY',
-        #                                  width=20,
-        #                                  command=self.apply_config)
-        label = tkinter.Label(self.top_frame, text='ITERATIONS',
-                                           width=20)
+        label = tkinter.Label(self.config_frame, text='ITERATIONS',
+                                           width=10)
 
-        self.strategy = tkinter.Checkbutton(self.top_frame,text="Max weight strategy", var = self.strategy_var)
-        self.avoid_gray_chk = tkinter.Checkbutton(self.top_frame, text="Avoid gray", var=self.avoid_gray)
+        self.strategy = tkinter.Checkbutton(self.config_frame,text="Max weight strategy", var = self.strategy_var)
+        self.avoid_gray_chk = tkinter.Checkbutton(self.config_frame, text="Avoid gray", var=self.avoid_gray)
+        self.damage_chk = tkinter.Checkbutton(self.config_frame, text="Damage", var=self.damage_var)
+        self.spread_damage_chk = tkinter.Checkbutton(self.config_frame, text="Spread Damage", var=self.spread_damage_var)
 
-        self.learning_button.grid(row=0, column=0)
-        self.path_button.grid(row=0, column=1)
-        self.collect_data_button.grid(row = 0, column = 2)
-        self.special_path_button.grid(row=0, column=3)
-        self.mark_goal_button.grid(row=0, column=4)
-        self.omnicient_button.grid(row=0, column=5)
-        #self.load_maze_button.grid(row=0, column=2)
-        label.grid(row=1, column=0)
-        self.iterations.grid(row=1, column=1)
-        #self.apply_button.grid(row=1, column=2)
-        self.strategy.grid(row=1,column=3)
-        self.avoid_gray_chk.grid(row=1,column=4)
+        button_panel_label.grid(row=0,column=0)
+        self.learning_button.grid(row=1, column=0)
+        self.path_button.grid(row=2, column=0)
+        self.special_path_button.grid(row=3, column=0)
+        self.omnicient_button.grid(row=4, column=0)
+
+        self.collect_data_button.grid(row = 5, column = 0)
+        self.mark_goal_button.grid(row=6, column=0)
+
+        tkinter.Label(self.config_frame).grid(row=0,column=0)
+        config_panel_label.grid(row=2,column=0,columnspan=2)
+        label.grid(row=4, column=0)
+        self.iterations.grid(row=4, column=1)
+        self.strategy.grid(sticky="W",row=5,column=1)
+        self.avoid_gray_chk.grid(sticky="W",row=6,column=1)
+        self.damage_chk.grid(sticky="W", row=7, column=1)
+        self.spread_damage_chk.grid(sticky="W", row=8, column=1)
+        damage_interval_label.grid(row=9,column=0)
+        self.damage_interval_entry.grid(sticky="W", row=9, column=1)
 
         ## BOARD CANVASE FRAME
         # you can draw rectangle , lines points etc in a canvas
@@ -99,7 +123,7 @@ class MemoryModel (object):
         right = tkinter.Canvas(canvas_frame,
                               width=config.CELL_WIDTH,
                               height=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
-        canvas_frame.grid(row=1,column=0)
+        canvas_frame.grid(row=0,column=1)
         # pack mean you add show the canvas. By default it will not show
         left.grid(row=1,column=0)
         self.canvas.grid(row=1, column=1)
@@ -126,14 +150,29 @@ class MemoryModel (object):
         # you need to call this so that the GUI start running
 
         self.root.mainloop()
+
     def update_status(self,txt):
+        """
+        Update status bar
+        :param txt:
+        :return:
+        """
         self.status.configure(text=txt)
+
     def start_marking_reward_handler(self):
+        """
+        To keep track of the marking ow reward staart and end
+        :return:
+        """
         self.marking_reward_space = True
         self.reward_start = None
         self.reward_end = None
 
     def apply_config(self):
+        """
+        Update whatever configurations
+        :return:
+        """
         if self.iterations.get():
             config.num_learning_steps=int(self.iterations.get())
 
@@ -158,7 +197,7 @@ class MemoryModel (object):
     def start_learning(self):
         self.rundata = rundata.RunData()
         self.apply_config()
-        self.canvas.delete("path")
+        self.canvas.delete("path") # remove all paths
         self.move_mouse(self.rat)
         self.print_board()
 
@@ -242,24 +281,23 @@ class MemoryModel (object):
         #
         b_row = []
         self.matrix = np.identity(900)
-        #for p in range(900):
-         #   b_row.clear()
-          #  for q in range(900):
-           #     if q == p:
-            #        b_row.append(1)
-              #  else:
-               #     b_row.append(0)
-            #self.matrix.append(b_row)
         print(self.matrix)
         w = []
         T = []
         for d in range (900):
             w.append(0)
             T.append([0]*900)
-        self.my_maze = maze.Maze(self.board, self.matrix, w,T)
+        self.my_maze = maze.Maze(self,self.board, self.matrix, w,T)
         self.my_maze.setup_default_maze()
 
         self.rat = mouse.Mouse(0,599,0,0,0,self)
+
+    def make_cell_damaged(self,row,col):
+        x = col*config.CELL_WIDTH+2
+        y = row*config.CELL_WIDTH+2
+        c = self.canvas.find_closest(x,y)
+        self.canvas.itemconfig(c, fill="black")
+        self.canvas.update()
 
     def update_circle(self,id,x,y):
         oldcircle = None
@@ -555,6 +593,11 @@ class MemoryModel (object):
         return  x_f > config.exit_cell_x1() and x_f < config.exit_cell_x2() and y_f > config.exit_cell_y1() and y_f < config.exit_cell_y2()
 
     def path(self,rat,num_directions,special,omnicient):
+
+        if bool(self.damage_var.get()):  # if damage selected
+            interval_val = int(self.damage_interval_var.get())
+            self.my_maze.setup_damage(interval=interval_val,count=-1,spread=bool(self.spread_damage_var.get())) # setup the damaging
+
         if special:
             config.il(f" start({self.reward_start[0]},{self.reward_start[1]}) end ({self.reward_end[0]},{self.reward_end[1]})")
             reward_row = 10
@@ -668,6 +711,7 @@ class MemoryModel (object):
                 if trap_count > 2000:
                     return False
                 rat.move(b_max[0], b_max[1])
+                self.my_maze.damage()
                 #print(f"Moving to {b_max[0]},{b_max[1]} {b_max[1]//20} {b_max[0]//20}")
         # update rundata
         self.rundata.num_directions = len(arr)
