@@ -44,7 +44,7 @@ class MemoryModel (object):
 
         self.path_button = tkinter.Button(self.top_frame, text='FIND PATH',
                                               width=20,
-                                              command=self.find_path_handler)
+                                              command=self.find_path_handler_regular)
 
         self.collect_data_button = tkinter.Button(self.top_frame, text='COLLECT DATA',
                                           width=20,
@@ -55,6 +55,9 @@ class MemoryModel (object):
         self.mark_goal_button = tkinter.Button(self.top_frame, text='SELECT REWARD SPACE',
                                                   width=20,
                                                   command=self.start_marking_reward_handler)
+        self.omnicient_button = tkinter.Button(self.top_frame, text='OMNICIENT SUCCESSOR',
+                                                  width=20,
+                                                  command=self.find_path_handler)
 
         #self.load_maze_button = tkinter.Button(self.top_frame, text='LOAD MAZE',
         #                                      width=20,
@@ -76,6 +79,7 @@ class MemoryModel (object):
         self.collect_data_button.grid(row = 0, column = 2)
         self.special_path_button.grid(row=0, column=3)
         self.mark_goal_button.grid(row=0, column=4)
+        self.omnicient_button.grid(row=0, column=5)
         #self.load_maze_button.grid(row=0, column=2)
         label.grid(row=1, column=0)
         self.iterations.grid(row=1, column=1)
@@ -179,11 +183,14 @@ class MemoryModel (object):
         self.apply_config()
         self.canvas.delete("path")
         self.canvas.update()
-        ret = self.path(self.rat, num_directions,True)
+        ret = self.path(self.rat, num_directions,True,False)
         return ret
 
     def find_path_handler(self):
         self.find_path(self.NUM_DIRECTIONS)
+
+    def find_path_handler_regular(self):
+        self.find_path_regular(self.NUM_DIRECTIONS)
 
     def find_special_path_handler(self):
         self.find_special_path(self.NUM_DIRECTIONS)
@@ -193,7 +200,15 @@ class MemoryModel (object):
         self.apply_config()
         self.canvas.delete("path")
         self.canvas.update()
-        ret = self.path(self.rat,num_directions,False)
+        ret = self.path(self.rat,num_directions,True,True)
+        return ret
+
+    def find_path_regular(self,num_directions):
+        self.selection_strategy_max = bool(self.strategy_var.get())
+        self.apply_config()
+        self.canvas.delete("path")
+        self.canvas.update()
+        ret = self.path(self.rat,num_directions,False,False)
         return ret
 
     def load_maze(self):
@@ -499,7 +514,7 @@ class MemoryModel (object):
             col = int((x_f) // config.CELL_WIDTH)
             if not self.board[row][col].is_travellable:
                 #self.my_maze.update_weight(rat)
-                #self.my_maze.update_matrix_original(x_f,y_f,rat)
+                self.my_maze.update_matrix(x_f,y_f,rat)
 
                 #first_index = int(rat.get_y()//20*30+rat.get_x()//20)
                 #second_index = int(y_f//20*30+x_f//20)
@@ -539,7 +554,7 @@ class MemoryModel (object):
         # check to see the points are on last cell
         return  x_f > config.exit_cell_x1() and x_f < config.exit_cell_x2() and y_f > config.exit_cell_y1() and y_f < config.exit_cell_y2()
 
-    def path(self,rat,num_directions,special):
+    def path(self,rat,num_directions,special,omnicient):
         if special:
             config.il(f" start({self.reward_start[0]},{self.reward_start[1]}) end ({self.reward_end[0]},{self.reward_end[1]})")
             reward_row = 10
@@ -549,9 +564,9 @@ class MemoryModel (object):
                 reward_y = self.reward_end[1]
                 reward_row = reward_y // 20
                 reward_col = reward_x // 20
-            #self.my_maze.reassign_weight(rat,reward_row,reward_col)
-            self.my_maze.create_T(rat)
-            self.my_maze.create_weights(rat,reward_row,reward_col)
+            if omnicient:
+                self.my_maze.create_T(rat)
+                self.my_maze.create_weights_omnicient(rat,reward_row,reward_col)
         else:
             reward_x = rat.get_x()
             reward_y = rat.get_y()

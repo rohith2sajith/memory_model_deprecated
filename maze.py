@@ -49,14 +49,43 @@ class Maze(object):
         second_index = int(y_f // 20 * 30 + x_f // 20)
 
         if first_index == second_index:
-            return
-        #  Do we need to do the first index calulation first?
-        self.matrix[first_index][first_index] = self.matrix[first_index][first_index] + rat.ALPHA * (1 + rat.GAMMA * self.matrix[second_index][first_index] - self.matrix[first_index][first_index])
+            self.matrix[first_index][first_index] = self.matrix[first_index][first_index] + rat.ALPHA * (1 + rat.GAMMA * self.matrix[second_index][first_index] - self.matrix[first_index][first_index])
         for c in range(900):
             if c != first_index:
                 self.matrix[first_index][c] = self.matrix[first_index][c] + rat.ALPHA * (0 + rat.GAMMA * self.matrix[second_index][c] - self.matrix[first_index][c])
 
-    def create_weights(self,mouse,reward_row,reward_col):
+    def create_weights_learned(self,mouse,reward_row,reward_col):
+        reward_matrix = []
+        for f in range (900):
+            if f == reward_row*30+reward_col:
+                reward_matrix.append(1)
+            else:
+                reward_matrix.append(-1)
+        weights = []
+        #self.matrix = self.set_successor(mouse)
+        for g in range (900):
+            sum = 0
+            for h in range (900):
+                #sum = 0 bug
+                sum += self.matrix[g][h]*reward_matrix[h]
+            weights.append(sum)
+        # debug
+        minus_one_equal = min(weights)
+        for i in range(len(weights)):
+            weights[i] = weights[i]*-1/minus_one_equal
+        config.il(f"MAX VALUE {max(weights)}")
+        for x in range (30):
+            for y in range (30):
+                self.board[x][y].set_weight(weights[30*x+y])
+
+
+    def set_damage_row(self,row):
+        for i in range (900):
+            self.matrix[row][i] = 0
+
+
+
+    def create_weights_omnicient(self,mouse,reward_row,reward_col):
         reward_matrix = []
         for f in range (900):
             if f == reward_row*30+reward_col:
@@ -90,9 +119,9 @@ class Maze(object):
                                 start_row = int(i//30)
                                 start_col = int(i % 30)
                                 next_row = int(i//30)+ j
-                                next_col = int(j % 30) + k
-                                p_row = sp.norm.cdf(next_row-start_row+0.5,0,math.sqrt(2)/4) - sp.norm.cdf(next_row-start_row-0.5,0,math.sqrt(2)/4)
-                                p_col = sp.norm.cdf(next_col-start_col+0.5,0,math.sqrt(2)/4) - sp.norm.cdf(next_col-start_col-0.5,0,math.sqrt(2)/4)
+                                next_col = int(i % 30) + k
+                                p_row = sp.norm.cdf(next_row-start_row+0.5,0,mouse.SIGMA2/(config.CELL_WIDTH)) - sp.norm.cdf(next_row-start_row-0.5,0,mouse.SIGMA2/(config.CELL_WIDTH))
+                                p_col = sp.norm.cdf(next_col-start_col+0.5,0,mouse.SIGMA2/(config.CELL_WIDTH)) - sp.norm.cdf(next_col-start_col-0.5,0,mouse.SIGMA2/(config.CELL_WIDTH))
                                 p = p_row * p_col
                                 if p < 0.001:
                                     p = 0
