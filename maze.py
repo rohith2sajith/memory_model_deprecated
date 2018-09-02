@@ -370,6 +370,8 @@ class Maze(object):
                 for a in self.find_adjacent_cells(r[0],r[1]):
                     if a not in self.damaged_cells and a not in self.cells_to_damage :
                         self.cells_to_damage.append(a)
+        elif self.damage_count:
+            self.cells_to_damage.append(self.a_random_cell())
 
     def is_blocked_cell(self,row,col):
         """
@@ -398,9 +400,9 @@ class Maze(object):
             for r in self.cells_to_damage:
                 self.damage_a_cell(r[0],r[1])
             # now add with new ie adjecent for each of them in the list
-            self.update_next_damage_cells()
             self.damage_count -=1
             self.damage_timer = 0
+            self.update_next_damage_cells()
         else:
             self.damage_timer +=1
 

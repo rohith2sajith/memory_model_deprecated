@@ -37,11 +37,13 @@ class MemoryModel (object):
         self.damage_interval_var = StringVar()
         self.damage_var = IntVar()
         self.spread_damage_var = IntVar()
+        self.damage_count_var = StringVar()
 
         self.avoid_gray.set(1)
         self.strategy_var.set(1)
         self.damage_var.set(1)
         self.damage_interval_var.set("1")
+        self.damage_count_var.set("1")
 
         ## TOP CONTROL BUTTON FRAME
         self.top_frame = tkinter.Frame(self.root)
@@ -82,6 +84,10 @@ class MemoryModel (object):
                               width=20)
         self.damage_interval_entry = tkinter.Entry (self.config_frame,width=5,textvariable = self.damage_interval_var)
 
+        damage_count_label = tkinter.Label(self.config_frame, text='DAMAGE COUNT',
+                                              width=20)
+        self.damage_count_entry = tkinter.Entry(self.config_frame, width=5, textvariable=self.damage_count_var)
+
         self.iterations.insert(0,str(config.num_learning_steps))
         label = tkinter.Label(self.config_frame, text='ITERATIONS',
                                            width=10)
@@ -110,6 +116,8 @@ class MemoryModel (object):
         self.spread_damage_chk.grid(sticky="W", row=8, column=1)
         damage_interval_label.grid(row=9,column=0)
         self.damage_interval_entry.grid(sticky="W", row=9, column=1)
+        damage_count_label.grid(row=10, column=0)
+        self.damage_count_entry.grid(sticky="W", row=10, column=1)
 
         ## BOARD CANVASE FRAME
         # you can draw rectangle , lines points etc in a canvas
@@ -596,7 +604,8 @@ class MemoryModel (object):
 
         if bool(self.damage_var.get()):  # if damage selected
             interval_val = int(self.damage_interval_var.get())
-            self.my_maze.setup_damage(interval=interval_val,count=-1,spread=bool(self.spread_damage_var.get())) # setup the damaging
+            count_val = int(self.damage_count_var.get())
+            self.my_maze.setup_damage(interval=interval_val,count=count_val,spread=bool(self.spread_damage_var.get())) # setup the damaging
 
         if special:
             config.il(f" start({self.reward_start[0]},{self.reward_start[1]}) end ({self.reward_end[0]},{self.reward_end[1]})")
