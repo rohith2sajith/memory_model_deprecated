@@ -36,6 +36,8 @@ class RunData(object):
             cr="\n"
             i+=1
         return  str
+    def shorter_str(self):
+        return f"{self.num_directions},{self.num_traps},{self.search_length},{self.learning_length},{self.time},{self.num_squares}"
 
 
 

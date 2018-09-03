@@ -188,8 +188,6 @@ class Mouse(object):
         distance = math.sqrt(math.pow(x-current_x,2)+math.pow(y-current_y,2))
         self.distance += distance
         #config.pl(f"drawing line ({current_x},{current_y}) - ({x},{y}) - {distance}")
-        if distance > 40:
-            print("hi")
         self.memorymodel.draw_line(current_x,current_y,x,y)
         self.mouse_shape = self.memorymodel.update_circle(self.mouse_shape,x,y)
         self.set_x(x) # save x an y

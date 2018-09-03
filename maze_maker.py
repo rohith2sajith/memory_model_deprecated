@@ -110,7 +110,7 @@ class MazeBuilder:
         for s in self.canvas.find_all():
             current_fill = self.canvas.itemcget(s, 'fill')
             row,col = self.from_tag(self.canvas.gettags(s)[0])
-            board[row][col].is_travellable = self.is_shaded(current_fill)
+            board[row][col].is_not_travellable = self.is_shaded(current_fill)
 
             self.my_maze.save(file_path)
         # test
@@ -121,7 +121,7 @@ class MazeBuilder:
         for i in range(config.NUMBER_OF_CELLS):
             for j in range(config.NUMBER_OF_CELLS):
                 s = self.canvas.find_withtag(self.to_tag(i,j))[0]
-                self.canvas.itemconfig(s, fill=self.get_fill_color(board[i][j].is_travellable))
+                self.canvas.itemconfig(s, fill=self.get_fill_color(board[i][j].is_not_travellable))
 
     def load_from_file(self,filename):
         self.my_maze = maze.Maze([])
