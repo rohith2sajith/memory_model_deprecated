@@ -572,7 +572,9 @@ class MemoryModel (object):
 
         displacements = []
         time = 0
-        for q in range (config.num_learning_steps):
+        q = 0
+        while q < config.num_learning_steps:
+        #for q in range (config.num_learning_steps):
         #while not self.isOnLastCell(rat.get_x(),rat.get_y()):
             coords = [0,config.max_y_coord()]
             coords = rat.get_next_coor(rat.get_x(), rat.get_y())
@@ -654,6 +656,7 @@ class MemoryModel (object):
                 self.my_maze.update_matrix(x_f,y_f,rat)
 
                 rat.move(x_f,y_f)
+                q +=1
                 self.my_maze.register_travelled_cell(row,col)
                 self.board()[row][col].travelled = rat.get_t()
                 self.my_maze.update_weight(rat)
@@ -688,7 +691,10 @@ class MemoryModel (object):
 
         # if damaging needed
         if damage_flag:  # if damage selected
-            self.my_maze.setup_damage(interval=damage_interval,count=damage_count,damage_mode=damage_mode) # setup the damaging
+            mode_regular = False
+            if find_path_mode == "REGULAR":
+                mode_regular = True
+            self.my_maze.setup_damage(find_path_mode_regular=mode_regular,interval=damage_interval,count=damage_count,damage_mode=damage_mode) # setup the damaging
         else:
             self.my_maze.reset_damaging()
 
@@ -806,7 +812,7 @@ class MemoryModel (object):
                 rat.move(b_max[0], b_max[1])
                 if self.my_maze.damage():  # if we are askewd to damage then recalulate
                     self.update_status(f"[{loop_count}] Recalculating weights...")
-                    self.my_maze.recalculate_weights(reward_row,reward_col)
+                    self.my_maze.recalculate_weights(omnicient,reward_row,reward_col)
                     self.update_status(f"[{loop_count}] Recalculating weights completed")
                 #print(f"Moving to {b_max[0]},{b_max[1]} {b_max[1]//20} {b_max[0]//20}")
         # update rundata

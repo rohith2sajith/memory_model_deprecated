@@ -1,0 +1,60 @@
+------- 2018-09-03 21:49:45.586179 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+REGULAR     ,ADJ CELL    ,    5645.812,         116,         589,1           ,     537.136,         413,          76
+REGULAR     ,NO DAMAGING ,    5645.812,         116,         589,1           ,    5462.376,         585,           0
+SPECIAL     ,NO DAMAGING ,    5645.812,         116,         589,0           ,    1327.025,          37,           0
+OMNICIENT   ,NO DAMAGING ,    5645.812,         116,         589,0           ,     826.681,           0,           0
+OMNICIENT   ,NO DAMAGING ,    5645.812,         116,         589,0           ,     881.555,          12,           0
+------- 2018-09-03 22:02:20.417751 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+------- 2018-09-03 22:03:09.316274 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+------- 2018-09-03 22:03:29.033947 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+REGULAR     ,NO DAMAGING ,    5214.498,          96,         583,0           ,     720.397,           4,           0
+SPECIAL     ,NO DAMAGING ,    5214.498,          96,         583,0           ,     891.524,          32,           0
+OMNICIENT   ,NO DAMAGING ,    5214.498,          96,         583,0           ,     570.212,           0,           0
+------- 2018-09-03 22:05:34.579063 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+------- 2018-09-03 22:06:42.721641 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+REGULAR     ,ADJ CELL    ,    7374.820,         168,         713,0           ,       0.000,           0,           9
+------- 2018-09-03 22:08:18.296084 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+------- 2018-09-03 22:08:33.514892 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+------- 2018-09-03 22:09:14.716369 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+------- 2018-09-03 22:09:28.238748 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+------- 2018-09-03 22:12:32.558725 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+REGULAR     ,ADJ CELL    ,    9834.582,         222,        1000,0           ,       0.000,           0,          69
+------- 2018-09-03 22:14:31.324170 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+------- 2018-09-03 22:32:31.791304 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+REGULAR     ,ADJ CELL    ,    7918.150,         177,        1000,0           ,     127.100,           0,           0
+------- 2018-09-03 22:34:44.015072 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+------- 2018-09-03 22:40:12.042752 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+REGULAR     ,ADJ CELL    ,    8238.806,         224,        1000,1           ,    9348.596,        1305,          70
+REGULAR     ,ADJ CELL    ,    8238.806,         224,        1000,1           ,    3929.372,         298,          83
+REGULAR     ,NO DAMAGING ,    8238.806,         224,        1000,0           ,    2012.242,          40,           0
+REGULAR     ,ADJ CELL    ,    8238.806,         224,        1000,1           ,    5756.953,         629,          79
+REGULAR     ,NO DAMAGING ,    8238.806,         224,        1000,0           ,    1913.043,          91,           0
+REGULAR     ,NO DAMAGING ,    8238.806,         224,        1000,1           ,    4565.718,         383,           0
+------- 2018-09-03 22:42:49.129082 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+REGULAR     ,NO DAMAGING ,     584.841,          26,        1000,0           ,     408.388,           0,           0
+REGULAR     ,NO DAMAGING ,     584.841,          26,        1000,0           ,     369.846,           0,           0
+REGULAR     ,ADJ CELL    ,     584.841,          26,        1000,0           ,     357.333,           0,           8
+------- 2018-09-03 22:44:21.310337 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+REGULAR     ,NO DAMAGING ,    9216.584,         192,        1000,0           ,     823.772,          39,           0
+REGULAR     ,NO DAMAGING ,    9216.584,         192,        1000,0           ,    1661.373,         399,           0
+SPECIAL     ,NO DAMAGING ,    9216.584,         192,        1000,0           ,    1344.174,          19,           0
+OMNICIENT   ,NO DAMAGING ,    9216.584,         192,        1000,0           ,     752.351,           0,           0
+------- 2018-09-03 22:46:07.216443 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd

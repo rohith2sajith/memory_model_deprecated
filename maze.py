@@ -30,6 +30,7 @@ class Maze(object):
         self.damage_timer = 0
         self.damage_policy_spread = False
         self.damage_mode = config.DAMAGE_MODE_SINGLE_CELL
+        self.find_path_mode_regular = False
 
     def register_travelled_cell(self,row,col):
         if [row,col] not in self.travelled_cells:
@@ -119,12 +120,29 @@ class Maze(object):
             for y in range (30):
                 self.board[x][y].set_weight(weights[30*x+y])
 
+    def recalculate_weights_learned(self,reward_row,reward_col):
+        reward_matrix = []
+        for f in range (900):
+            if f == reward_row*30+reward_col:
+                reward_matrix.append(1)
+            else:
+                reward_matrix.append(-1)
+        weights = []
+        for g in range (900):
+            sum = 0
+            for h in range (900):
+                sum += self.matrix[g][h]*reward_matrix[h]
+            weights.append(sum)
+        minus_one_equal = min(weights)
+        for i in range(len(weights)):
+            weights[i] = weights[i]*-1/minus_one_equal
+        for x in range (30):
+            for y in range (30):
+                self.board[x][y].set_weight(weights[30*x+y])
 
     def set_damage_row(self,row):
         for i in range (900):
             self.matrix[row][i] = 0
-
-
 
     def create_weights_omnicient(self,mouse,reward_row,reward_col):
         reward_matrix = []
@@ -148,8 +166,15 @@ class Maze(object):
         for x in range (30):
             for y in range (30):
                 self.board[x][y].set_weight(weights[30*x+y])
+    def recalculate_weights(self,omnicient,reward_row,reward_col):
+        if self.find_path_mode_regular:
+            return
+        if omnicient:
+            self.recalculate_weights_omnicient(reward_row,reward_col)
+        else:
+            self.recalculate_weights_learned(reward_row,reward_col)
 
-    def recalculate_weights(self,reward_row,reward_col):
+    def recalculate_weights_omnicient(self,reward_row,reward_col):
         """
         Recalculate weights
         :param reward_row:
@@ -349,7 +374,10 @@ class Maze(object):
         :return:
         """
         # modify T
-        self.T[row*30+col] = [0]*900
+        if self.find_path_mode_regular:
+            self.board[row][col].set_weight(0)
+        else:
+            self.matrix[row*30+col] = [0]*900
         # now make the color of the cell to be black
         self.memboard.make_cell_damaged(row,col)
         self.damaged_cells.append([row,col])
@@ -387,7 +415,7 @@ class Maze(object):
         return r
 
 
-    def setup_damage(self,interval,count,damage_mode):
+    def setup_damage(self,find_path_mode_regular,interval,count,damage_mode):
         """
 
         :param interval: time interval. For each of this interval we will do one or more damage
@@ -403,7 +431,7 @@ class Maze(object):
             self.damage_policy_spread = True
         else:
             self.damage_policy_spread = False
-
+        self.find_path_mode_regular = find_path_mode_regular
         self.damage_interval = interval
         self.damage_count = count
         self.damage_timer = 0
