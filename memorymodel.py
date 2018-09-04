@@ -43,13 +43,15 @@ class MemoryModel (object):
         special_path_button = tkinter.Button(button_group, text='SPECIAL PATH',width=20,command=self.find_special_path_handler)
         mark_goal_button = tkinter.Button(button_group, text='SELECT REWARD SPACE',width=20,command=self.start_marking_reward_handler)
         omnicient_button = tkinter.Button(button_group, text='OMNICIENT SUCCESSOR',width=20,command=self.find_path_handler_omnicient)
+        analyze_damage_button = tkinter.Button(button_group, text='ANALYZE DAMAGE',width=20,command=self.analyze_damage_handler)
         stop_button = tkinter.Button(button_group, text='STOP PATH',width=20,command=self.stop_path_handler)
         learning_button.grid(row=0, column=0)
         path_button.grid(row=1, column=0)
         special_path_button.grid(row=2, column=0)
         omnicient_button.grid(row=3, column=0)
-        collect_data_button.grid(row = 5, column = 0)
-        mark_goal_button.grid(row=6, column=0)
+        mark_goal_button.grid(row=4, column=0)
+        analyze_damage_button.grid(row=5,column=0)
+        collect_data_button.grid(row=6, column=0)
         stop_button.grid(row=7, column=0)
 
         return button_group
@@ -110,15 +112,15 @@ class MemoryModel (object):
         self.avoid_gray.set(1)
         self.strategy_var.set(1)
         self.damage_var.set(1)
-        self.damage_interval_var.set("1")
-        self.damage_count_var.set("1")
+        self.damage_interval_var.set("10")
+        self.damage_count_var.set("10")
         self.damage_mode_var.set("1")
         self.iterations_var.set(config.num_learning_steps)
 
         ## TOP CONTROL BUTTON FRAME
         self.top_frame = tkinter.Frame(self.root)
         self.top_frame.grid(row=0, column=0)
-
+        ###   TOP FRAME ####
         self.buttons_frame = tkinter.Frame(self.top_frame)
         self.config_frame = tkinter.Frame(self.top_frame)
         self.buttons_frame.grid(row=0,column=0)
@@ -155,7 +157,7 @@ class MemoryModel (object):
         self.canvas.bind("<Button-1>", self.on_clicked)
         ## BOTTOM STATUS FRAME
         self.status = tkinter.Label(self.root, text="STATUS:")
-        self.status.grid(row=2, column=0)
+        self.status.grid(sticky="W",row=2, column=0,columnspan=2)
 
         # now create rectangle
         for i in range(config.NUMBER_OF_CELLS):
@@ -236,19 +238,56 @@ class MemoryModel (object):
             success = True
             for n in [5,10,15,20,30,40,60,80,100,150,200,300,400,600,1000]:
                 self.update_status(f"FIND PATH - RUN #:{i} NUM_DIRECTIONS #:{n}")
-                success = self.find_path(n,False,False)
+                success = self.find_path(n,False,False,0,0,0,0)
                 if not success:
                     break
                 f.write(str(self.rundata) + "\n")
         f.close()
 
-    def initialize_find_path(self,find_path_mode):
+    def analyze_damage_handler(self):
+        for i in range(100):
+            self.start_learning()
+            # find regulat path
+            self.find_path_regular(self.NUM_DIRECTIONS,0,0,0,0)
+            self.find_path_special(self.NUM_DIRECTIONS,0,0,0,0)
+            self.find_path_omnicient(self.NUM_DIRECTIONS,0,0,0,0)
+
+            for damage_interval in [10,20,50,75]:
+                # single cell
+                self.find_path_regular(self.NUM_DIRECTIONS, 1, 0, damage_interval, -1)
+                self.find_path_special(self.NUM_DIRECTIONS, 1, 0, damage_interval, -1)
+                self.find_path_omnicient(self.NUM_DIRECTIONS, 1, 0, damage_interval, -1)
+
+                self.find_path_regular(self.NUM_DIRECTIONS, 1, 1, damage_interval, -1)
+                self.find_path_special(self.NUM_DIRECTIONS, 1, 1, damage_interval, -1)
+                self.find_path_omnicient(self.NUM_DIRECTIONS, 1, 1, damage_interval, -1)
+
+                self.find_path_regular(self.NUM_DIRECTIONS, 1, 2, damage_interval, -1)
+                self.find_path_special(self.NUM_DIRECTIONS, 1, 2, damage_interval, -1)
+                self.find_path_omnicient(self.NUM_DIRECTIONS, 1, 2, damage_interval, -1)
+
+    def get_damage_mode_str(self,damage_flag,damage_mode):
+        mode = "NO DAMAGING"
+        if damage_flag:
+            if damage_mode == config.DAMAGE_MODE_SINGLE_CELL:
+                mode = "SINGLE CELL"
+            elif damage_mode == config.DAMAGE_MODE_ADJ_CELL:
+                mode = "ADJ CELL"
+            else:
+                mode = "SPREAD"
+        return mode
+
+    def stop_path_handler(self):
+        self.stop_path_flag = True
+
+    def initialize_find_path(self,find_path_mode,damage_flag,damage_mode):
         self.selection_strategy_max = bool(self.strategy_var.get())
         self.apply_config()
         self.canvas.delete("path")
         self.canvas.update()
         self.stop_path_flag = False
-        self.reportdata = report.ReportData(find_path_mode,int(self.damage_var.get()),int(self.damage_mode_var.get()))
+
+        self.reportdata = report.ReportData(find_path_mode, self.get_damage_mode_str(damage_flag,damage_mode))
 
     def finalize_find_path(self):
         self.reportdata.learning_length = self.rundata.learning_length
@@ -258,34 +297,59 @@ class MemoryModel (object):
         self.reportdata.learning_num_squares = self.rundata.num_squares
         self.reportdata.learning_time  = self.rundata.time
         self.reportdata.find_path_aborted = self.stop_path_flag
+        self.reportdata.find_path_damaged_cell_count = self.my_maze.get_damaged_cell_count()
         self.reporter.report(self.reportdata)
 
     def find_path_handler_omnicient(self):
-        self.initialize_find_path("OMNICIENT")
-        r = self.find_path(self.NUM_DIRECTIONS, True, True)
+        damage_flag = self.damage_var.get()
+        damage_mode = int(self.damage_mode_var.get())
+        damage_interval = int(self.damage_interval_var.get())
+        damage_count = int(self.damage_count_var.get())
+        r = self.find_path_omnicient(self.NUM_DIRECTIONS,damage_flag,damage_mode,damage_interval,damage_count)
+        return r
+
+    def find_path_omnicient(self,num_directions,damage_flag,damage_mode,damage_interval,damage_count):
+        self.initialize_find_path("OMNICIENT",damage_flag,damage_mode)
+        r = self.find_path("OMNICIENT",num_directions, True, True,damage_flag,damage_mode,damage_interval,damage_count)
         self.finalize_find_path()
         return r
 
-    def stop_path_handler(self):
-        self.stop_path_flag = True
-
+    # Find path reguak
     def find_path_handler_regular(self):
-        self.initialize_find_path("REGULAR")
-        r =  self.find_path(self.NUM_DIRECTIONS, False, False)
+        damage_flag = self.damage_var.get()
+        damage_mode = int(self.damage_mode_var.get())
+        damage_interval = int(self.damage_interval_var.get())
+        damage_count = int(self.damage_count_var.get())
+
+        r =  self.find_path_regular(self.NUM_DIRECTIONS,damage_flag,damage_mode,damage_interval,damage_count)
+        return r
+
+    def find_path_regular(self,num_directions,damage_flag,damage_mode,damage_interval,damage_count):
+        self.initialize_find_path("REGULAR",damage_flag,damage_mode)
+        r = self.find_path("REGULAR",num_directions, False, False,damage_flag,damage_mode,damage_interval,damage_count)
         self.finalize_find_path()
         return r
 
     def find_special_path_handler(self):
-        self.initialize_find_path("SPECIAL")
-        r =  self.find_path(self.NUM_DIRECTIONS, True, False)
+        damage_flag = self.damage_var.get()
+        damage_mode = int(self.damage_mode_var.get())
+        damage_interval = int(self.damage_interval_var.get())
+        damage_count = int(self.damage_count_var.get())
+
+        r =  self.find_path_special(self.NUM_DIRECTIONS,damage_flag,damage_mode,damage_interval,damage_count)
+        return r
+
+    def find_path_special(self,num_directions,damage_flag,damage_mode,damage_interval,damage_count):
+        self.initialize_find_path("SPECIAL",damage_flag,damage_mode)
+        r = self.find_path("SPECIAL",num_directions, True, False,damage_flag,damage_mode,damage_interval,damage_count)
         self.finalize_find_path()
         return r
 
-    def find_path(self,num_directions,special,omnicient):
+    def find_path(self,find_path_mode,num_directions,special,omnicient,damage_flag,damage_mode,damage_interval,damage_count):
         self.update_status("Restoring from snapshot...")
         self.my_maze.restore_from_snapshot()
         self.update_status("Restoring from snapshot completed")
-        return self.path(self.rat,num_directions,special,omnicient)
+        return self.path(find_path_mode,self.rat,num_directions,special,omnicient,damage_flag,damage_mode,damage_interval,damage_count)
 
     def load_maze(self):
         file_path = filedialog.askopenfilename()
@@ -344,7 +408,7 @@ class MemoryModel (object):
         y = row*config.CELL_WIDTH+2
         c = self.canvas.find_closest(x,y)
         self.canvas.itemconfig(c, fill="black")
-        self.canvas.update()
+        ##self.canvas.update()
 
     def update_circle(self,id,x,y):
         oldcircle = None
@@ -354,25 +418,13 @@ class MemoryModel (object):
         oldcircle =  self.canvas.create_oval(x,y,x+config.MOUSE_RADIUS,
                                              y+config.MOUSE_RADIUS,
                                              fill=config.MOUSE_FILL_COLOR, tag="path")
-        self.root.update()
-        return oldcircle
-
-    def draw_circle_suggested(self,id,delete,x,y):
-        oldcircle = None
-        if delete:
-            oldcircle = self.canvas.find_withtag(id)
-            self.canvas.delete(oldcircle)
-        else:
-            oldcircle =  self.canvas.create_oval(x,y,x+config.MOUSE_RADIUS,
-                                                 y+config.MOUSE_RADIUS,
-                                                 fill=config.SUGGESTED_MOUSE_FILL_COLOR)
-            self.root.update()
+        self.canvas.update()
         return oldcircle
 
     def draw_line(self,x1,y1,x2,y2):
         last_line = self.canvas.create_line(x1,y1,x2,y2,fill=config.PATH_LINE_COLOR, width=2)
         self.canvas.itemconfigure(last_line, tags="path")
-        self.root.update()
+        ##self.root.update()
 
     def reset_velocity(self,rat):
         rat.set_v_x(0)
@@ -612,9 +664,8 @@ class MemoryModel (object):
 
                 rat.set_t(rat.get_t()+1)
                 time = time + 1
-            else:
-                config.i('*')
-            self.update_status(f"Learning:{q}")
+            self.update_status(f"Learning:{q:>8}")
+
         # update for last time
         self.my_maze.update_weight(rat)
         count = 0
@@ -633,13 +684,11 @@ class MemoryModel (object):
         # check to see the points are on last cell
         return  x_f > config.exit_cell_x1() and x_f < config.exit_cell_x2() and y_f > config.exit_cell_y1() and y_f < config.exit_cell_y2()
 
-    def path(self,rat,num_directions,special,omnicient):
+    def path(self,find_path_mode,rat,num_directions,special,omnicient,damage_flag,damage_mode,damage_interval,damage_count):
 
         # if damaging needed
-        if bool(self.damage_var.get()):  # if damage selected
-            interval_val = int(self.damage_interval_var.get())
-            count_val = int(self.damage_count_var.get())
-            self.my_maze.setup_damage(interval=interval_val,count=count_val,damage_mode=int(self.damage_mode_var.get())) # setup the damaging
+        if damage_flag:  # if damage selected
+            self.my_maze.setup_damage(interval=damage_interval,count=damage_count,damage_mode=damage_mode) # setup the damaging
         else:
             self.my_maze.reset_damaging()
 
@@ -654,8 +703,11 @@ class MemoryModel (object):
                 reward_row = reward_y // 20
                 reward_col = reward_x // 20
             if omnicient:
+                self.update_status(f"Calculating T ...")
                 self.my_maze.create_T(rat)
+                self.update_status(f"Calculating weights ...")
                 self.my_maze.create_weights_omnicient(rat,reward_row,reward_col)
+                self.update_status(f"Calculating weights completed")
         else:
             reward_x = rat.get_x()
             reward_y = rat.get_y()
@@ -693,7 +745,7 @@ class MemoryModel (object):
             if self.stop_path_flag:
                 break # asked to stop
             loop_count +=1
-            self.update_status(f"[{loop_count}] processing...")
+            self.update_status(f"Processing {find_path_mode:>12}... [{loop_count:>6} traps: {trap_count:>8}, damaged:{self.my_maze.get_damaged_cell_count():>8}]")
             weights.clear()
             arr.clear()
             for i in range (num_directions):

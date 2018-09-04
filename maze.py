@@ -53,6 +53,9 @@ class Maze(object):
             self.T = copy.deepcopy(self.snapshot_T)
             self.w = copy.deepcopy(self.snapshot_w)
 
+    def get_damaged_cell_count(self):
+        return len(self.damaged_cells)
+
     def update_weight(self,mouse):
         for i in range (config.NUMBER_OF_CELLS):
             for j in range(config.NUMBER_OF_CELLS):
@@ -405,6 +408,7 @@ class Maze(object):
         self.damage_count = count
         self.damage_timer = 0
         self.damage_mode = damage_mode
+        self.damaged_cells.clear()
 
 
         # cells_to_damage is an array that container next cell(s) to damage
