@@ -42,12 +42,14 @@ class Maze(object):
         Typically taken after a run
         :return:
         """
+        print("..")
         self.snapshot_board = copy.deepcopy(self.board)
         self.snapshot_matrix = copy.deepcopy(self.matrix)
         self.snapshot_T = copy.deepcopy(self.T)
         self.snapshot_w  = copy.deepcopy(self.w)
 
     def restore_from_snapshot(self):
+        print("..")
         if self.snapshot_board:
             self.board = copy.deepcopy(self.snapshot_board)
             self.matrix = copy.deepcopy(self.snapshot_matrix)
@@ -115,7 +117,6 @@ class Maze(object):
         minus_one_equal = min(weights)
         for i in range(len(weights)):
             weights[i] = weights[i]*-1/minus_one_equal
-        config.il(f"MAX VALUE {max(weights)}")
         for x in range (30):
             for y in range (30):
                 self.board[x][y].set_weight(weights[30*x+y])
@@ -140,9 +141,7 @@ class Maze(object):
             for y in range (30):
                 self.board[x][y].set_weight(weights[30*x+y])
 
-    def set_damage_row(self,row):
-        for i in range (900):
-            self.matrix[row][i] = 0
+
 
     def create_weights_omnicient(self,mouse,reward_row,reward_col):
         reward_matrix = []
@@ -152,7 +151,8 @@ class Maze(object):
             else:
                 reward_matrix.append(-1)
         weights = []
-        self.matrix = self.set_successor(mouse)
+        # removed
+        # self.matrix = self.set_successor(mouse)
         for g in range (900):
             sum = 0
             for h in range (900):
@@ -166,6 +166,7 @@ class Maze(object):
         for x in range (30):
             for y in range (30):
                 self.board[x][y].set_weight(weights[30*x+y])
+
     def recalculate_weights(self,omnicient,reward_row,reward_col):
         if self.find_path_mode_regular:
             return
@@ -247,6 +248,8 @@ class Maze(object):
         print(total)
         return
 
+    def init_omnicient(self,mouse):
+        self.matrix = self.set_successor(mouse)
 
     def set_successor(self, mouse):
         i = np.identity(900)
@@ -366,18 +369,16 @@ class Maze(object):
         return (num1-num2) / denom
 
     def damage_a_cell(self, row,col):
-        """
-        Damage the given cell by making the value to 0
-        Also change the color of the cell to black
-        :param row:
-        :param col:
-        :return:
-        """
-        # modify T
         if self.find_path_mode_regular:
             self.board[row][col].set_weight(0)
         else:
-            self.matrix[row*30+col] = [0]*900
+            for i in range (900):
+                if i == row*30+col:
+                    self.matrix[row*30+col][i] = 1
+                else:
+                    self.matrix[row*30+col][i] = 0
+
+
         # now make the color of the cell to be black
         self.memboard.make_cell_damaged(row,col)
         self.damaged_cells.append([row,col])

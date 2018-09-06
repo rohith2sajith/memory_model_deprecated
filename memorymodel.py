@@ -114,7 +114,7 @@ class MemoryModel (object):
         self.damage_var.set(1)
         self.damage_interval_var.set("10")
         self.damage_count_var.set("10")
-        self.damage_mode_var.set("1")
+        self.damage_mode_var.set("0")
         self.iterations_var.set(config.num_learning_steps)
 
         ## TOP CONTROL BUTTON FRAME
@@ -688,18 +688,22 @@ class MemoryModel (object):
         return  x_f > config.exit_cell_x1() and x_f < config.exit_cell_x2() and y_f > config.exit_cell_y1() and y_f < config.exit_cell_y2()
 
     def path(self,find_path_mode,rat,num_directions,special,omnicient,damage_flag,damage_mode,damage_interval,damage_count):
+        reward_row = 10
+        reward_col = 10
+        if special and omnicient: # initilize
+            self.my_maze.create_T(rat)
+            self.my_maze.init_omnicient(rat)
 
-        # if damaging needed
         if damage_flag:  # if damage selected
             mode_regular = False
             if find_path_mode == "REGULAR":
                 mode_regular = True
-            self.my_maze.setup_damage(find_path_mode_regular=mode_regular,interval=damage_interval,count=damage_count,damage_mode=damage_mode) # setup the damaging
+            self.my_maze.setup_damage(find_path_mode_regular=mode_regular, interval=0, count=damage_count, damage_mode=damage_mode)  # setup the damaging
+            # apply damage
+            for dmgc in range(damage_count):
+                self.my_maze.damage()
         else:
             self.my_maze.reset_damaging()
-
-        reward_row = 10
-        reward_col = 10
 
         if special:
             config.il(f" start({self.reward_start[0]},{self.reward_start[1]}) end ({self.reward_end[0]},{self.reward_end[1]})")
@@ -710,16 +714,22 @@ class MemoryModel (object):
                 reward_col = reward_x // 20
             if omnicient:
                 self.update_status(f"Calculating T ...")
-                self.my_maze.create_T(rat)
                 self.update_status(f"Calculating weights ...")
                 self.my_maze.create_weights_omnicient(rat,reward_row,reward_col)
+                self.update_status(f"Calculating weights completed")
+            elif damage_flag:
+                self.update_status(f"Calculating weights ...")
+                self.my_maze.create_weights_learned(rat, reward_row, reward_col)
                 self.update_status(f"Calculating weights completed")
         else:
             reward_x = rat.get_x()
             reward_y = rat.get_y()
             reward_row = reward_y // 20
             reward_col = reward_x // 20
+        # damage
+        # if damaging needed
 
+        # dmage
         learning_distance = rat.get_distance()
         rat.set_distance(0)
         starting_x = 0
@@ -730,7 +740,6 @@ class MemoryModel (object):
             start_row = starting_y // 20
             start_col = starting_x // 20
 
-        self.print_board()
         rat.set_x(starting_x)
         rat.set_y(starting_y)
         rat.set_v_x(0)
@@ -810,10 +819,10 @@ class MemoryModel (object):
                 if trap_count > 2000:
                     return False
                 rat.move(b_max[0], b_max[1])
-                if self.my_maze.damage():  # if we are askewd to damage then recalulate
-                    self.update_status(f"[{loop_count}] Recalculating weights...")
-                    self.my_maze.recalculate_weights(omnicient,reward_row,reward_col)
-                    self.update_status(f"[{loop_count}] Recalculating weights completed")
+                #if self.my_maze.damage():  # if we are askewd to damage then recalulate
+                #    self.update_status(f"[{loop_count}] Recalculating weights...")
+                #    self.my_maze.recalculate_weights(omnicient,reward_row,reward_col)
+                #    self.update_status(f"[{loop_count}] Recalculating weights completed")
                 #print(f"Moving to {b_max[0]},{b_max[1]} {b_max[1]//20} {b_max[0]//20}")
         # update rundata
         self.rundata.num_directions = len(arr)
