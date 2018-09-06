@@ -31,7 +31,7 @@ class Cell(object):
         self.weight = weight
 
     def serialize(self,row,col):
-        return f"{row},{col},{self.x},{self.y},{self.is_no_travellable}"
+        return f"{row},{col},{self.x},{self.y},{self.is_not_travellable}"
 
     def deserialize(self,str):
         parts = str.split(",")

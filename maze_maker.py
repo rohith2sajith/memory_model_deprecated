@@ -5,8 +5,10 @@ import maze
 from tkinter import filedialog
 
 class MazeBuilder:
+    DEFAULT_WEIGHT = 0.1  # default weight
+    DAMAGE_FILL_COLORS = ["tomato2","tomato3","tomato4","orangered4","red4","black"]
     def __init__(self):
-        self.my_maze = maze.Maze([])
+        self.my_maze = maze.Maze(None)
         self.my_maze.blank_board()
         self.my_maze.setup_default_maze()
 
@@ -55,7 +57,7 @@ class MazeBuilder:
                                                    config.CELL_WIDTH * (j + 1),
                                                    config.CELL_WIDTH * (i + 1),
                                                    fill=fill_color,tags=self.to_tag(i,j))
-        self.load_form_board(self.my_maze.board)
+        self.update_ui(self.my_maze.board)
 
         self.root.mainloop()
 
@@ -70,11 +72,15 @@ class MazeBuilder:
         if current_color == config.WALKABLE_CELL_COLOR:
             return  config.BLOCKED_CELL_COLOR
         return config.WALKABLE_CELL_COLOR
-
-    def get_fill_color(self,is_travelable):
+    @staticmethod
+    def get_fill_color(is_travelable):
         if is_travelable:
             return config.BLOCKED_CELL_COLOR
         return config.WALKABLE_CELL_COLOR
+
+    @staticmethod
+    def get_damage_fill_color(index):
+        return MazeBuilder.DAMAGE_FILL_COLORS[index]
 
     def is_shaded(self,color):
         return color == config.BLOCKED_CELL_COLOR
@@ -103,8 +109,8 @@ class MazeBuilder:
 
     def save(self):
         print('saving')
-        file_path = filedialog.askopenfilename()
-        self.my_maze = maze.Maze([])
+        file_path = filedialog.asksaveasfilename()
+        self.my_maze = maze.Maze(None)
         board = self.my_maze.blank_board()
 
         for s in self.canvas.find_all():
@@ -115,23 +121,62 @@ class MazeBuilder:
             self.my_maze.save(file_path)
         # test
         self.clear_board()
-        self.load_form_board(board)
+        self.update_ui(board)
 
-    def load_form_board(self,board):
+    def update_ui(self,board):
         for i in range(config.NUMBER_OF_CELLS):
             for j in range(config.NUMBER_OF_CELLS):
                 s = self.canvas.find_withtag(self.to_tag(i,j))[0]
                 self.canvas.itemconfig(s, fill=self.get_fill_color(board[i][j].is_not_travellable))
 
     def load_from_file(self,filename):
-        self.my_maze = maze.Maze([])
-        self.my_maze.load(filename)
-        self.load_form_board(self.my_maze.board)
+        #self.my_maze = maze.Maze(None)
+        #self.my_maze.load(filename)
+        #self.load_from_board(self.my_maze.board)
+        board = self.load_board(filename)
+        self.my_maze = maze.Maze(None)
+        self.my_maze.board = board
+        self.update_ui(board)
 
     def load(self):
         print("loading")
         file_path = filedialog.askopenfilename()
         self.load_from_file(file_path)
+
+    @staticmethod
+    def blank_board():
+        """
+
+        :return:
+        """
+        x = 0
+        y = 0
+        board = []
+        for row in range(config.NUMBER_OF_CELLS):
+            x = 0
+            a_row = []
+            for col in range(config.NUMBER_OF_CELLS):
+                is_not_travellable = False
+                travelled = -1
+                first_travelled = -1
+                traced = False
+                a_row.append(cell.Cell(MazeBuilder.DEFAULT_WEIGHT, x, y, is_not_travellable, travelled, first_travelled, traced))
+                x += 1
+            y += 1
+            board.append(a_row)
+        return board
+
+    @staticmethod
+    def load_board(filename):
+        board = MazeBuilder.blank_board()
+        with open(filename, 'r') as maz_file:
+            for line in maz_file:
+                line = line.strip("\n")
+                my_cell = cell.Cell()
+                row, col = my_cell.deserialize(line)
+                board[row][col] = my_cell
+        return board
+
 
 def main():
     maz_builder = MazeBuilder()

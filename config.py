@@ -19,6 +19,7 @@ log_level = LOG_LEVEL_INFO
 DAMAGE_MODE_SINGLE_CELL=0
 DAMAGE_MODE_ADJ_CELL=1
 DAMAGE_MODE_SPREAD_CELL=2
+MAZE_LIST=["default","maze1","maze2","maze3","maze4"]
 
 
 

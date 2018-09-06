@@ -4,7 +4,10 @@ import maze
 import rundata
 import report
 import config as config
+import maze_maker
+import damager
 import tkinter
+import time
 import numpy as np
 from sympy import *
 from sympy.geometry import *
@@ -32,6 +35,11 @@ class MemoryModel (object):
         self.reward_end = None
         self.stop_path_flag = False
         self.reporter = report.Report()
+        self.current_maze = config.MAZE_LIST[0]
+        self.damage_generator= maze.DamageGeneratorSimple()
+        self.damageble_cells_for_this_session = None
+        self.damageble_cells_cumulative = {}
+        self.running_function=""
 
     def setup_ui_buttom_control_panel(self,my_parent):
         button_group = tkinter.LabelFrame(my_parent, text='CONTROL PANEL',pady=10,padx=10)
@@ -45,17 +53,32 @@ class MemoryModel (object):
         omnicient_button = tkinter.Button(button_group, text='OMNICIENT SUCCESSOR',width=20,command=self.find_path_handler_omnicient)
         analyze_damage_button = tkinter.Button(button_group, text='ANALYZE DAMAGE',width=20,command=self.analyze_damage_handler)
         stop_button = tkinter.Button(button_group, text='STOP PATH',width=20,command=self.stop_path_handler)
+
         learning_button.grid(row=0, column=0)
         path_button.grid(row=1, column=0)
         special_path_button.grid(row=2, column=0)
         omnicient_button.grid(row=3, column=0)
-        mark_goal_button.grid(row=4, column=0)
-        analyze_damage_button.grid(row=5,column=0)
-        collect_data_button.grid(row=6, column=0)
-        stop_button.grid(row=7, column=0)
+        stop_button.grid(row=4, column=0)
+        mark_goal_button.grid(row=0, column=1)
+        analyze_damage_button.grid(row=1,column=1)
+        collect_data_button.grid(row=2, column=1)
+
 
         return button_group
 
+    def setup_ui_maze_list(self,my_parent):
+        maze_list_group = tkinter.LabelFrame(my_parent, text='Maze List',pady=10,padx=10)
+        rb1 = tkinter.Radiobutton(maze_list_group, var=self.maze_name_var, text=config.MAZE_LIST[0], value=config.MAZE_LIST[0], command=self.change_maze_handler)
+        rb2 = tkinter.Radiobutton(maze_list_group, var=self.maze_name_var, text=config.MAZE_LIST[1], value=config.MAZE_LIST[1], command=self.change_maze_handler)
+        rb3 = tkinter.Radiobutton(maze_list_group, var=self.maze_name_var, text=config.MAZE_LIST[2], value=config.MAZE_LIST[2],command=self.change_maze_handler)
+        rb4 = tkinter.Radiobutton(maze_list_group, var=self.maze_name_var, text=config.MAZE_LIST[3], value=config.MAZE_LIST[3],command=self.change_maze_handler)
+        rb5 = tkinter.Radiobutton(maze_list_group, var=self.maze_name_var, text=config.MAZE_LIST[4], value=config.MAZE_LIST[4], command=self.change_maze_handler)
+        rb1.grid(sticky="W", row=0, column=0)
+        rb2.grid(sticky="W", row=0, column=1)
+        rb3.grid(sticky="W", row=1, column=0)
+        rb4.grid(sticky="W", row=1, column=1)
+        rb5.grid(sticky="W", row=2, column=0)
+        return maze_list_group
 
     def setup_ui_config_panel(self,my_parent):
         config_panel_group = tkinter.LabelFrame(my_parent, text='RUN CONFIGURATION')
@@ -108,6 +131,7 @@ class MemoryModel (object):
         self.spread_damage_var = IntVar()
         self.damage_count_var = StringVar()
         self.damage_mode_var = IntVar()
+        self.maze_name_var = StringVar()
 
         self.avoid_gray.set(1)
         self.strategy_var.set(1)
@@ -115,6 +139,7 @@ class MemoryModel (object):
         self.damage_interval_var.set("10")
         self.damage_count_var.set("10")
         self.damage_mode_var.set("0")
+        self.maze_name_var.set("default")
         self.iterations_var.set(config.num_learning_steps)
 
         ## TOP CONTROL BUTTON FRAME
@@ -128,6 +153,7 @@ class MemoryModel (object):
 
         # Control Panel
         self.setup_ui_buttom_control_panel(self.buttons_frame).grid(row=0,column=0)
+        self.setup_ui_maze_list(self.buttons_frame).grid(row=1, column=0)
         ## Config Panel
 
         self.setup_ui_buttom_control_panel(self.buttons_frame)
@@ -183,6 +209,7 @@ class MemoryModel (object):
         :param txt:
         :return:
         """
+        txt = f"[{self.current_maze}] [{self.running_function}] : {txt}"
         self.status.configure(text=txt)
 
     def start_marking_reward_handler(self):
@@ -220,6 +247,7 @@ class MemoryModel (object):
                                             fill=fill_color)
 
     def start_learning(self):
+        self.running_function = "LEARNING"
         self.rundata = rundata.RunData()
         self.apply_config()
         self.canvas.delete("path") # remove all paths
@@ -227,6 +255,8 @@ class MemoryModel (object):
         self.print_board()
         # take snapshot of what we leanred
         self.my_maze.take_snapshot()
+        self.damageble_cells_for_this_session = None # reset after start leaning
+
 
     def collect_data(self):
         f = open("data.csv", "w+")
@@ -243,28 +273,60 @@ class MemoryModel (object):
                     break
                 f.write(str(self.rundata) + "\n")
         f.close()
+    def update_ui(self,board):
+        for row in range(config.NUMBER_OF_CELLS):
+            for col in range(config.NUMBER_OF_CELLS):
+                x = col * config.CELL_WIDTH + 2
+                y = row * config.CELL_WIDTH + 2
+                s = self.canvas.find_closest(x, y)
+                self.canvas.itemconfig(s, fill=maze_maker.MazeBuilder.get_fill_color(board[row][col].is_not_travellable))
+
+    def change_maze_handler(self):
+        self.change_maze(self.maze_name_var.get())
+
+    def change_maze(self,maze_to_load):
+        if self.current_maze != maze_to_load:
+            # get the damaged cells list and degree first
+            board = maze_maker.MazeBuilder.load_board(f"{maze_to_load}.mze")
+            self.my_maze.reinitialize(board)
+            # remove unwanter uis
+            self.remove_upper_layer()
+            self.update_ui(board)
+            self.current_maze = maze_to_load
+            # update to next
+            for c,v in self.damageble_cells_cumulative.items():
+                current_damage_index = v[1]
+                current_damage_degree = v[0]
+                next_damage_index = self.damage_generator.get_next_index(current_damage_index)
+                next_damage_degree = self.damage_generator.get_damage(next_damage_index)
+                # update
+                v[0] = next_damage_degree
+                v[1] = next_damage_index
 
     def analyze_damage_handler(self):
-        for i in range(100):
+        test_damage_count = 10
+        test_count =2
+        # for each maze
+        for mze in config.MAZE_LIST:
+            self.change_maze(mze)  # load the maze
+            # do a learning
             self.start_learning()
-            # find regulat path
-            self.find_path_regular(self.NUM_DIRECTIONS,0,0,0,0)
-            self.find_path_special(self.NUM_DIRECTIONS,0,0,0,0)
-            self.find_path_omnicient(self.NUM_DIRECTIONS,0,0,0,0)
+            # Control
+            damage_it = 0 # no damage
+            for damage_it in [0,1]:  # with and without damage
+                for i in range(test_count): # omnicient
+                    self.find_path_omnicient(num_directions=self.NUM_DIRECTIONS,
+                                         damage_flag=damage_it, damage_mode=config.DAMAGE_MODE_SINGLE_CELL,
+                                         damage_interval=0, damage_count=test_damage_count)
+                    self.update_status("Pausing test for 5 sec...")
+                    time.sleep(5)
 
-            for damage_interval in [10,20,50,75]:
-                # single cell
-                self.find_path_regular(self.NUM_DIRECTIONS, 1, 0, damage_interval, -1)
-                self.find_path_special(self.NUM_DIRECTIONS, 1, 0, damage_interval, -1)
-                self.find_path_omnicient(self.NUM_DIRECTIONS, 1, 0, damage_interval, -1)
-
-                self.find_path_regular(self.NUM_DIRECTIONS, 1, 1, damage_interval, -1)
-                self.find_path_special(self.NUM_DIRECTIONS, 1, 1, damage_interval, -1)
-                self.find_path_omnicient(self.NUM_DIRECTIONS, 1, 1, damage_interval, -1)
-
-                self.find_path_regular(self.NUM_DIRECTIONS, 1, 2, damage_interval, -1)
-                self.find_path_special(self.NUM_DIRECTIONS, 1, 2, damage_interval, -1)
-                self.find_path_omnicient(self.NUM_DIRECTIONS, 1, 2, damage_interval, -1)
+                for i in range(test_count):  # special path
+                    self.find_path_special(num_directions=self.NUM_DIRECTIONS,
+                                           damage_flag=damage_it, damage_mode=config.DAMAGE_MODE_SINGLE_CELL,
+                                           damage_interval=0, damage_count=test_damage_count)
+                    self.update_status("Pausing test for 5 sec...")
+                    time.sleep(5)
 
     def get_damage_mode_str(self,damage_flag,damage_mode):
         mode = "NO DAMAGING"
@@ -279,15 +341,21 @@ class MemoryModel (object):
 
     def stop_path_handler(self):
         self.stop_path_flag = True
-
-    def initialize_find_path(self,find_path_mode,damage_flag,damage_mode):
-        self.selection_strategy_max = bool(self.strategy_var.get())
-        self.apply_config()
+    def remove_upper_layer(self):
         self.canvas.delete("path")
         self.canvas.update()
+
+    def initialize_find_path(self,find_path_mode,damage_flag,damage_mode,damage_count):
+        self.update_status("Initializing find path...")
+        self.selection_strategy_max = bool(self.strategy_var.get())
+        self.apply_config()
+        self.remove_upper_layer()
         self.stop_path_flag = False
 
         self.reportdata = report.ReportData(find_path_mode, self.get_damage_mode_str(damage_flag,damage_mode))
+        if not self.damageble_cells_for_this_session:
+            self.damageble_cells_for_this_session = self.generate_damageble_cells(damage_mode,damage_count)
+            self.damageble_cells_cumulative.update(self.damageble_cells_for_this_session)
 
     def finalize_find_path(self):
         self.reportdata.learning_length = self.rundata.learning_length
@@ -301,6 +369,7 @@ class MemoryModel (object):
         self.reporter.report(self.reportdata)
 
     def find_path_handler_omnicient(self):
+
         damage_flag = self.damage_var.get()
         damage_mode = int(self.damage_mode_var.get())
         damage_interval = int(self.damage_interval_var.get())
@@ -309,7 +378,8 @@ class MemoryModel (object):
         return r
 
     def find_path_omnicient(self,num_directions,damage_flag,damage_mode,damage_interval,damage_count):
-        self.initialize_find_path("OMNICIENT",damage_flag,damage_mode)
+        self.running_function = "OMNICIENT"
+        self.initialize_find_path("OMNICIENT",damage_flag,damage_mode,damage_count)
         r = self.find_path("OMNICIENT",num_directions, True, True,damage_flag,damage_mode,damage_interval,damage_count)
         self.finalize_find_path()
         return r
@@ -325,7 +395,8 @@ class MemoryModel (object):
         return r
 
     def find_path_regular(self,num_directions,damage_flag,damage_mode,damage_interval,damage_count):
-        self.initialize_find_path("REGULAR",damage_flag,damage_mode)
+        self.running_function = "REGULAR"
+        self.initialize_find_path("REGULAR",damage_flag,damage_mode,damage_count)
         r = self.find_path("REGULAR",num_directions, False, False,damage_flag,damage_mode,damage_interval,damage_count)
         self.finalize_find_path()
         return r
@@ -340,7 +411,8 @@ class MemoryModel (object):
         return r
 
     def find_path_special(self,num_directions,damage_flag,damage_mode,damage_interval,damage_count):
-        self.initialize_find_path("SPECIAL",damage_flag,damage_mode)
+        self.running_function = "SPECIAL"
+        self.initialize_find_path("SPECIAL",damage_flag,damage_mode,damage_count)
         r = self.find_path("SPECIAL",num_directions, True, False,damage_flag,damage_mode,damage_interval,damage_count)
         self.finalize_find_path()
         return r
@@ -349,66 +421,27 @@ class MemoryModel (object):
         self.update_status("Restoring from snapshot...")
         self.my_maze.restore_from_snapshot()
         self.update_status("Restoring from snapshot completed")
-        return self.path(find_path_mode,self.rat,num_directions,special,omnicient,damage_flag,damage_mode,damage_interval,damage_count)
+        return self.path(find_path_mode,self.rat,num_directions,special,omnicient,damage_flag,damage_mode,damage_interval,damage_count,self.damageble_cells_cumulative)
 
     def load_maze(self):
         file_path = filedialog.askopenfilename()
         self.my_maze.load(file_path)
 
     def init_board(self):
-        x = 0
-        y = 0
-        board = []
-        #
-        # initialize the board with cells
-        #
-
-        for row in range(config.NUMBER_OF_CELLS):
-            x = 0
-            a_row = []
-            for col in range(config.NUMBER_OF_CELLS):
-                # print (f"x:{x} y:{y}")
-                # for testing make the is_travelable random
-                is_not_travellable = False
-                travelled = -1
-                first_travelled = -1
-                traced = False
-                a_row.append(cell.Cell(self.DEFAULT_WEIGHT, x, y, is_not_travellable, travelled, first_travelled, traced))
-                x += 1
-            y += 1
-            board.append(a_row)
-        #
-        # Initialize the data metrix
-        #
-        b_row = []
-        self.matrix = np.identity(900)
-        print(self.matrix)
-        w = []
-        T = []
-        for d in range (900):
-            w.append(0)
-            T.append([0]*900)
-        self.my_maze = maze.Maze(self,board, self.matrix, w,T)
+        self.my_maze = maze.Maze(self)
         self.my_maze.setup_default_maze()
-
-        self.rat = mouse.Mouse(0,599,0,0,0,self)
+        self.rat = mouse.Mouse(0, 599, 0, 0, 0, self)
 
     def board(self):
         return self.my_maze.board
 
-    def make_cell_damaged(self,row,col):
-
+    def make_cell_damaged(self,row,col,damage_index):
+        fill_color = maze_maker.MazeBuilder.get_damage_fill_color(damage_index)
         box = self.canvas.create_rectangle(self.CELL_WIDTH * col,
                                            self.CELL_WIDTH * row,
                                            self.CELL_WIDTH * (col + 1),
                                            self.CELL_WIDTH * (row + 1),
-                                           fill="black",tag="path")
-
-        x = col*config.CELL_WIDTH+2
-        y = row*config.CELL_WIDTH+2
-        c = self.canvas.find_closest(x,y)
-        self.canvas.itemconfig(c, fill="black")
-        ##self.canvas.update()
+                                           fill=fill_color,tag="path")
 
     def update_circle(self,id,x,y):
         oldcircle = None
@@ -687,21 +720,20 @@ class MemoryModel (object):
         # check to see the points are on last cell
         return  x_f > config.exit_cell_x1() and x_f < config.exit_cell_x2() and y_f > config.exit_cell_y1() and y_f < config.exit_cell_y2()
 
-    def path(self,find_path_mode,rat,num_directions,special,omnicient,damage_flag,damage_mode,damage_interval,damage_count):
+    def generate_damageble_cells(self,damage_mode,damage_count):
+        dm = damager.DamageManager(self.board(),self.damage_generator,damage_mode,damage_count,self.my_maze.travelled_cells)
+        return dm.get_damagable_cells()
+
+    def path(self,find_path_mode,rat,num_directions,special,omnicient,damage_flag,damage_mode,damage_interval,damage_count,damageble_cells):
         reward_row = 10
         reward_col = 10
         if special and omnicient: # initilize
+            self.update_status(f"Calculating T ...")
             self.my_maze.create_T(rat)
             self.my_maze.init_omnicient(rat)
 
         if damage_flag:  # if damage selected
-            mode_regular = False
-            if find_path_mode == "REGULAR":
-                mode_regular = True
-            self.my_maze.setup_damage(find_path_mode_regular=mode_regular, interval=0, count=damage_count, damage_mode=damage_mode)  # setup the damaging
-            # apply damage
-            for dmgc in range(damage_count):
-                self.my_maze.damage()
+            self.my_maze.damage(damageble_cells)
         else:
             self.my_maze.reset_damaging()
 
@@ -713,7 +745,7 @@ class MemoryModel (object):
                 reward_row = reward_y // 20
                 reward_col = reward_x // 20
             if omnicient:
-                self.update_status(f"Calculating T ...")
+
                 self.update_status(f"Calculating weights ...")
                 self.my_maze.create_weights_omnicient(rat,reward_row,reward_col)
                 self.update_status(f"Calculating weights completed")

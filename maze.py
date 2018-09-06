@@ -8,13 +8,72 @@ import scipy.stats as sp
 import copy
 import time
 
+class DamageGeneratorSimple(object):
+    STATIC_DAMAGE_LIST=[0.9,0.8,0.6,0.3,0.1,0]
+    index = 0
+    def get_damage(self,idx=None):
+        if not idx:
+            return self.STATIC_DAMAGE_LIST[self.index]
+        # idx given
+        return self.STATIC_DAMAGE_LIST[idx]
+
+    def get_index(self):
+        return self.index
+    def get_next_index(self,i):
+        i +=1
+        if i >= len(self.STATIC_DAMAGE_LIST):
+            i = len(self.STATIC_DAMAGE_LIST)-1
+        return i
+
+    def forward(self):
+        self.index += 1
+        if self.index >= len(self.STATIC_DAMAGE_LIST):
+            self.index = len(self.STATIC_DAMAGE_LIST)-1
+
 class Maze(object):
-    def __init__(self,memboard,board,matrix,w,T):
+    DEFAULT_WEIGHT = 0.1  # default weight
+
+    def __init__(self,memboard):
+        self.matrix = np.identity(900)
+        self.w = []
+        self.T = []
+        for d in range(900):
+            self.w.append(0)
+            self.T.append([0] * 900)
+
         self.memboard = memboard
+        self.blank_board()
+        self.reset_damaging()
+        self.snapshot_board = None
+        self.snapshot_matrix = None
+        self.snapshot_w = None
+        self.snapshot_T = None
+        self.travelled_cells = []
+        self.damage_generator = DamageGeneratorSimple()
+
+    def progress_damage(self):
+        """
+        Prgoress damage
+        :return:
+        """
+        # go through each damaged cells and increast its damage
+        for c in self.damaged_cells:
+            # get the next damage index
+            damage_index = self.damaged_cells[c]
+            damage_index = self.damage_generator.get_next_index(damage_index)
+            damage_degree = self.damage_generator.get_damage(damage_index)
+            self.damage_a_cell(c[0],c[1],damage_degree,damage_index,True)
+
+
+    def reinitialize(self,board):
+        self.matrix = np.identity(900)
+        self.w = []
+        self.T = []
+        for d in range(900):
+            self.w.append(0)
+            self.T.append([0] * 900)
+
         self.board = board
-        self.matrix = matrix
-        self.w = w
-        self.T = T
         self.reset_damaging()
         self.snapshot_board = None
         self.snapshot_matrix = None
@@ -22,10 +81,33 @@ class Maze(object):
         self.snapshot_T = None
         self.travelled_cells = []
 
+    def blank_board(self):
+        x = 0
+        y = 0
+        board = []
+        #
+        # initialize the board with cells
+        #
+
+        for row in range(config.NUMBER_OF_CELLS):
+            x = 0
+            a_row = []
+            for col in range(config.NUMBER_OF_CELLS):
+                is_not_travellable = False
+                travelled = -1
+                first_travelled = -1
+                traced = False
+                a_row.append(cell.Cell(self.DEFAULT_WEIGHT, x, y, is_not_travellable, travelled, first_travelled, traced))
+                x += 1
+            y += 1
+            board.append(a_row)
+        self.board = board
+        return self.board
+
     def reset_damaging(self):
         self.damage_interval = -1  # no damage
         self.damage_count = 0  # no dmage 1 mean once -1 means forever
-        self.damaged_cells = []
+        self.damaged_cells = {}
         self.cells_to_damage = []
         self.damage_timer = 0
         self.damage_policy_spread = False
@@ -280,17 +362,6 @@ class Maze(object):
 
                 self.board[row][col] = my_cell
 
-    def blank_board(self):
-        x = 0
-        y = 0
-        self.board = []
-        for i in range(config.NUMBER_OF_CELLS):
-            a_row = []
-            for j in range(config.NUMBER_OF_CELLS):
-                a_row.append(cell.Cell(config.DEFAULT_WEIGHT, x, y, False, -1, False))
-            self.board.append(a_row)
-        return self.board
-
     def setup_default_maze(self):
         self.setup_with_default_maze(self.board)
 
@@ -368,39 +439,22 @@ class Maze(object):
         num2 = math.exp(-(float(y) - float(mean)) ** 2 / (2 * var))
         return (num1-num2) / denom
 
-    def damage_a_cell(self, row,col):
+    def damage_a_cell(self, row,col, damage_degree,damage_index,update_ui):
+
         if self.find_path_mode_regular:
-            self.board[row][col].set_weight(0)
+            self.board[row][col].set_weight(damage_degree)
         else:
             for i in range (900):
                 if i == row*30+col:
                     self.matrix[row*30+col][i] = 1
                 else:
-                    self.matrix[row*30+col][i] = 0
+                    self.matrix[row*30+col][i] = damage_degree # used to be 0
 
 
         # now make the color of the cell to be black
-        self.memboard.make_cell_damaged(row,col)
-        self.damaged_cells.append([row,col])
-        print(f"Damaging cell {row} {col}")
-
-    def not_used_damage_a_cell_and_around_it(self,row,col):
-        """
-        Damage a cell and around and return the list of cells
-        damaged
-        :param row:
-        :param col:
-        :return:
-        """
-        affected_cells = []
-        self.damage_a_cell(row, col)
-        affected_cells.append([row,col])
-        for a in self.find_adjacent_cells(row,col):
-            if a not in self.damaged_cells and a not in affected_cells:
-                affected_cells.append(a)
-                self.damage_a_cell(row,col)
-        return affected_cells
-
+        if update_ui:
+            self.memboard.make_cell_damaged(row,col,damage_index)
+        self.damaged_cells[(row,col)] = damage_index
 
     def a_random_cell(self):
         """
@@ -512,7 +566,7 @@ class Maze(object):
         return self.board[row][col].is_not_travellable
 
 
-    def damage(self):
+    def damage_old(self):
         """
         Damage
         Based on the interval specified it will start the damaging or not
@@ -524,11 +578,13 @@ class Maze(object):
         if self.damage_count ==0:
             return False
         damaged = False
+        damage_degree = self.damage_generator.get_damage()
+        damage_index = self.damage_generator.get_index()
         # damage_timer increament every time damage is called and if it is ewual to the intercal damage and reset the counter
         if self.damage_timer == self.damage_interval:
             # damage what ever in the list
             for r in self.cells_to_damage:
-                self.damage_a_cell(r[0],r[1])
+                self.damage_a_cell(r[0],r[1],damage_degree,damage_index,True)
                 damaged = True
             # now add with new ie adjecent for each of them in the list
             self.damage_count -=1
@@ -540,3 +596,9 @@ class Maze(object):
 
         return damaged
 
+
+    def damage(self,damageble_cells):
+        for c,v in damageble_cells.items():
+            damage_degree = v[0]
+            damage_index = v[1]
+            self.damage_a_cell(c[0], c[1], damage_degree, damage_index, True)
