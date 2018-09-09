@@ -9,7 +9,7 @@ import copy
 import time
 
 class DamageGeneratorSimple(object):
-    STATIC_DAMAGE_LIST=[0.9,0.8,0.6,0.3,0.1,0]
+    STATIC_DAMAGE_LIST=[0.0,0.8,0.6,0.3,0.1,0]
     index = 0
     def get_damage(self,idx=None):
         if not idx:
@@ -165,19 +165,39 @@ class Maze(object):
             return
         for c in range(900):
             if c == first_index:
-                self.matrix[first_index][c] = self.matrix[first_index][c] + config.GAMMA * (1 + config.GAMMA * self.matrix[second_index][c] - self.matrix[first_index][c])
+                self.matrix[first_index][c] = self.matrix[first_index][c] + config.ALPHA * (1 + config.GAMMA * self.matrix[second_index][c] - self.matrix[first_index][c])
             else:
-                self.matrix[first_index][c] = self.matrix[first_index][c] + config.GAMMA * (0 + config.GAMMA * self.matrix[second_index][c] - self.matrix[first_index][c])
+                self.matrix[first_index][c] = self.matrix[first_index][c] + config.ALPHA * (0 + config.GAMMA * self.matrix[second_index][c] - self.matrix[first_index][c])
 
     def update_matrix(self,x_f,y_f,rat):
         first_index = int(rat.get_y() // 20 * 30 + rat.get_x() // 20)
         second_index = int(y_f // 20 * 30 + x_f // 20)
 
         if first_index == second_index:
-            self.matrix[first_index][first_index] = self.matrix[first_index][first_index] + config.GAMMA * (1 + config.GAMMA * self.matrix[second_index][first_index] - self.matrix[first_index][first_index])
+            self.matrix[first_index][first_index] = self.matrix[first_index][first_index] + config.ALPHA * (1 + config.GAMMA * self.matrix[second_index][first_index] - self.matrix[first_index][first_index])
         for c in range(900):
             if c != first_index:
-                self.matrix[first_index][c] = self.matrix[first_index][c] + config.GAMMA * (0 + config.GAMMA * self.matrix[second_index][c] - self.matrix[first_index][c])
+                self.matrix[first_index][c] = self.matrix[first_index][c] + config.ALPHA * (0 + config.GAMMA * self.matrix[second_index][c] - self.matrix[first_index][c])
+
+    def not_used_recalculate_weights_learned(self,reward_row,reward_col):
+        reward_matrix = []
+        for f in range (900):
+            if f == reward_row*30+reward_col:
+                reward_matrix.append(1)
+            else:
+                reward_matrix.append(-1)
+        weights = []
+        for g in range (900):
+            sum = 0
+            for h in range (900):
+                sum += self.matrix[g][h]*reward_matrix[h]
+            weights.append(sum)
+        minus_one_equal = min(weights)
+        for i in range(len(weights)):
+            weights[i] = weights[i]*-1/minus_one_equal
+        for x in range (30):
+            for y in range (30):
+                self.board[x][y].set_weight(weights[30*x+y])
 
     def create_weights_learned(self,mouse,reward_row,reward_col):
         reward_matrix = []
@@ -187,29 +207,6 @@ class Maze(object):
             else:
                 reward_matrix.append(-1)
         weights = []
-        #self.matrix = self.set_successor(mouse)
-        for g in range (900):
-            sum = 0
-            for h in range (900):
-                #sum = 0 bug
-                sum += self.matrix[g][h]*reward_matrix[h]
-            weights.append(sum)
-        # debug
-        minus_one_equal = min(weights)
-        for i in range(len(weights)):
-            weights[i] = weights[i]*-1/minus_one_equal
-        for x in range (30):
-            for y in range (30):
-                self.board[x][y].set_weight(weights[30*x+y])
-
-    def recalculate_weights_learned(self,reward_row,reward_col):
-        reward_matrix = []
-        for f in range (900):
-            if f == reward_row*30+reward_col:
-                reward_matrix.append(1)
-            else:
-                reward_matrix.append(-1)
-        weights = []
         for g in range (900):
             sum = 0
             for h in range (900):
@@ -221,7 +218,6 @@ class Maze(object):
         for x in range (30):
             for y in range (30):
                 self.board[x][y].set_weight(weights[30*x+y])
-
 
 
     def create_weights_omnicient(self,mouse,reward_row,reward_col):
@@ -232,15 +228,11 @@ class Maze(object):
             else:
                 reward_matrix.append(-1)
         weights = []
-        # removed
-        # self.matrix = self.set_successor(mouse)
         for g in range (900):
             sum = 0
             for h in range (900):
-                #sum = 0 bug
                 sum += self.matrix[g][h]*reward_matrix[h]
             weights.append(sum)
-        # debug
         minus_one_equal = min(weights)
         for i in range(len(weights)):
             weights[i] = weights[i]*-1/minus_one_equal
@@ -248,7 +240,7 @@ class Maze(object):
             for y in range (30):
                 self.board[x][y].set_weight(weights[30*x+y])
 
-    def recalculate_weights(self,omnicient,reward_row,reward_col):
+    def not_used_recalculate_weights(self,omnicient,reward_row,reward_col):
         if self.find_path_mode_regular:
             return
         if omnicient:
@@ -256,7 +248,7 @@ class Maze(object):
         else:
             self.recalculate_weights_learned(reward_row,reward_col)
 
-    def recalculate_weights_omnicient(self,reward_row,reward_col):
+    def not_used_recalculate_weights_omnicient(self,reward_row,reward_col):
         """
         Recalculate weights
         :param reward_row:

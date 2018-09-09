@@ -207,3 +207,44 @@ REGULAR     ,SINGLE CELL ,    5739.188,         154,        1000,0           ,  
 fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
 ------- 2018-09-08 21:06:49.058214 -------
 fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+------- 2018-09-08 21:52:31.803918 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+SPECIAL     ,SINGLE CELL ,    9091.456,         154,        1000,1           ,   43644.120,          46,           1
+SPECIAL     ,NO DAMAGING ,    9091.456,         154,        1000,0           ,    1007.928,           7,           0
+SPECIAL     ,SINGLE CELL ,    9091.456,         154,        1000,1           ,   89082.554,         250,           1
+------- 2018-09-08 22:00:24.236673 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+------- 2018-09-08 22:02:02.678048 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+------- 2018-09-08 22:03:25.773022 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+SPECIAL     ,SINGLE CELL ,    8436.191,         210,        1000,0           ,    3409.050,           4,           0
+SPECIAL     ,SINGLE CELL ,    8436.191,         210,        1000,0           ,    5153.024,         101,           0
+------- 2018-09-08 22:05:33.101291 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+SPECIAL     ,SINGLE CELL ,   10280.127,         195,        1000,1           ,    3328.071,         101,           0
+------- 2018-09-08 22:09:27.987261 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+------- 2018-09-08 22:22:07.712168 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+------- 2018-09-08 22:24:11.043664 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+OMNICIENT   ,SINGLE CELL ,    9937.029,         227,        1000,1           ,    6210.833,         739,           0
+------- 2018-09-08 22:26:11.641253 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+OMNICIENT   ,SINGLE CELL ,    7814.205,         172,        1000,1           ,    4048.076,         480,           0
+------- 2018-09-08 22:28:59.791846 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+------- 2018-09-08 22:34:40.080622 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+OMNICIENT   ,NO DAMAGING ,    6540.307,         104,        1000,0           ,     366.964,          11,           0
+------- 2018-09-08 22:35:51.741214 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+SPECIAL     ,SINGLE CELL ,    5523.177,         157,        1000,1           ,   10741.767,          91,           0
+------- 2018-09-08 22:42:20.747086 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+OMNICIENT   ,SINGLE CELL ,    7056.372,         172,        1000,1           ,    1447.861,         179,           8
+------- 2018-09-08 22:44:16.825575 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+------- 2018-09-08 22:45:01.025223 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
