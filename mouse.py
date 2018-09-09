@@ -7,13 +7,6 @@ import config as config
 from datetime import datetime
 
 class Mouse(object):
-    ALPHA = 0.9
-    SIGMA1 = 10
-    SIGMA2 = 10
-    MEAN = 0
-    MIN = 0.5
-    MAX_Y = 30
-    GAMMA = 0.9
 
     def __init__(self,x,y,v_x,v_y,t,memorymodel):
         self.x=x
@@ -26,38 +19,38 @@ class Mouse(object):
         self.distance = 0
 
     def get_next_acceleration_x(self):
-        a_x = np.random.normal(self.MEAN,self.SIGMA1/(math.pow(2,1/2)))
+        a_x = np.random.normal(config.MEAN,config.SIGMA1/(math.pow(2,1/2)))
         return a_x
 
     def get_next_acceleration_y(self):
-        a_y = np.random.normal(self.MEAN,self.SIGMA1/(math.pow(2,1/2)))
+        a_y = np.random.normal(config.MEAN,config.SIGMA1/(math.pow(2,1/2)))
         return a_y
 
     def get_next_acceleration2_x(self):
-        a_x = np.random.normal(self.MEAN,self.SIGMA2/(math.pow(2,1/2)))
+        a_x = np.random.normal(config.MEAN,config.SIGMA2/(math.pow(2,1/2)))
         return a_x
 
     def get_next_acceleration2_y(self):
-        a_y = np.random.normal(self.MEAN,self.SIGMA2/(math.pow(2,1/2)))
+        a_y = np.random.normal(config.MEAN,config.SIGMA2/(math.pow(2,1/2)))
         return a_y
 
     def get_next_velocity_x(self):
-        new_v_x = self.ALPHA*self.get_v_x()+self.get_next_acceleration_x()
+        new_v_x = config.ALPHA*self.get_v_x()+self.get_next_acceleration_x()
         self.set_v_x(new_v_x)
         return new_v_x
 
     def get_next_velocity_y(self):
-        new_v_y = self.ALPHA*self.get_v_y() + self.get_next_acceleration_y()
+        new_v_y = config.ALPHA*self.get_v_y() + self.get_next_acceleration_y()
         self.set_v_y(new_v_y)
         return new_v_y
 
     def get_next_velocity2_y(self):
-        new_v_y = self.ALPHA*self.get_v_y() + self.get_next_acceleration2_y()
+        new_v_y = config.ALPHA*self.get_v_y() + self.get_next_acceleration2_y()
         self.set_v_y(new_v_y)
         return new_v_y
 
     def get_next_velocity2_x(self):
-        new_v_x = self.ALPHA*self.get_v_x()+self.get_next_acceleration2_x()
+        new_v_x = config.ALPHA*self.get_v_x()+self.get_next_acceleration2_x()
         self.set_v_x(new_v_x)
         return new_v_x
 
@@ -74,11 +67,11 @@ class Mouse(object):
     def get_next_coor_directed(self,x,y,theta):
         x_f = self.get_next_coor2(x,y)[0]
         y_f = y + self.get_v_x()* np.tan(theta)
-        if abs(y_f-y) > self.MAX_Y:
+        if abs(y_f-y) > config.MAX_Y:
             if y > y_f:
-                y_f = y - self.MAX_Y
+                y_f = y - config.MAX_Y
             else:
-                y_f = y + self.MAX_Y
+                y_f = y + config.MAX_Y
         return [x_f,y_f]
 
 

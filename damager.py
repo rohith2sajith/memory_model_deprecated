@@ -69,8 +69,6 @@ class DamageManager(object):
         if self.damage_mode != config.DAMAGE_MODE_SPREAD_CELL:
             r = self.a_random_cell()
             self.cells_to_damage.append(r)
-            if self.damage_mode == config.DAMAGE_MODE_ADJ_CELL:
-                self.cells_to_damage.extend(self.find_adjacent_cells(r[0],r[1]))
             return
         elif initial:
             r = self.a_random_cell()

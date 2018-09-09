@@ -105,7 +105,6 @@ class Maze(object):
         return self.board
 
     def reset_damaging(self):
-        self.damage_interval = -1  # no damage
         self.damage_count = 0  # no dmage 1 mean once -1 means forever
         self.damaged_cells = {}
         self.cells_to_damage = []
@@ -166,19 +165,19 @@ class Maze(object):
             return
         for c in range(900):
             if c == first_index:
-                self.matrix[first_index][c] = self.matrix[first_index][c] + rat.ALPHA * (1 + rat.GAMMA * self.matrix[second_index][c] - self.matrix[first_index][c])
+                self.matrix[first_index][c] = self.matrix[first_index][c] + config.GAMMA * (1 + config.GAMMA * self.matrix[second_index][c] - self.matrix[first_index][c])
             else:
-                self.matrix[first_index][c] = self.matrix[first_index][c] + rat.ALPHA * (0 + rat.GAMMA * self.matrix[second_index][c] - self.matrix[first_index][c])
+                self.matrix[first_index][c] = self.matrix[first_index][c] + config.GAMMA * (0 + config.GAMMA * self.matrix[second_index][c] - self.matrix[first_index][c])
 
     def update_matrix(self,x_f,y_f,rat):
         first_index = int(rat.get_y() // 20 * 30 + rat.get_x() // 20)
         second_index = int(y_f // 20 * 30 + x_f // 20)
 
         if first_index == second_index:
-            self.matrix[first_index][first_index] = self.matrix[first_index][first_index] + rat.ALPHA * (1 + rat.GAMMA * self.matrix[second_index][first_index] - self.matrix[first_index][first_index])
+            self.matrix[first_index][first_index] = self.matrix[first_index][first_index] + config.GAMMA * (1 + config.GAMMA * self.matrix[second_index][first_index] - self.matrix[first_index][first_index])
         for c in range(900):
             if c != first_index:
-                self.matrix[first_index][c] = self.matrix[first_index][c] + rat.ALPHA * (0 + rat.GAMMA * self.matrix[second_index][c] - self.matrix[first_index][c])
+                self.matrix[first_index][c] = self.matrix[first_index][c] + config.GAMMA * (0 + config.GAMMA * self.matrix[second_index][c] - self.matrix[first_index][c])
 
     def create_weights_learned(self,mouse,reward_row,reward_col):
         reward_matrix = []
@@ -303,8 +302,8 @@ class Maze(object):
                                 start_col = int(i % 30)
                                 next_row = int(i//30)+ j
                                 next_col = int(i % 30) + k
-                                p_row = sp.norm.cdf(next_row-start_row+0.5,0,mouse.SIGMA2/(config.CELL_WIDTH)) - sp.norm.cdf(next_row-start_row-0.5,0,mouse.SIGMA2/(config.CELL_WIDTH))
-                                p_col = sp.norm.cdf(next_col-start_col+0.5,0,mouse.SIGMA2/(config.CELL_WIDTH)) - sp.norm.cdf(next_col-start_col-0.5,0,mouse.SIGMA2/(config.CELL_WIDTH))
+                                p_row = sp.norm.cdf(next_row-start_row+0.5,0,config.SIGMA2/(config.CELL_WIDTH)) - sp.norm.cdf(next_row-start_row-0.5,0,config.SIGMA2/(config.CELL_WIDTH))
+                                p_col = sp.norm.cdf(next_col-start_col+0.5,0,config.SIGMA2/(config.CELL_WIDTH)) - sp.norm.cdf(next_col-start_col-0.5,0,config.SIGMA2/(config.CELL_WIDTH))
                                 p = p_row * p_col
                                 if p < 0.001:
                                     p = 0
@@ -340,7 +339,7 @@ class Maze(object):
             m_inverse.append([0]*900)
         for p in range (900):
             for q in range (900):
-                m_inverse[p][q] = i[p][q]-mouse.GAMMA * self.T[p][q]
+                m_inverse[p][q] = i[p][q]-config.GAMMA * self.T[p][q]
         m = numpy.linalg.inv(m_inverse)
         return m
 
@@ -448,7 +447,7 @@ class Maze(object):
                 if i == row*30+col:
                     self.matrix[row*30+col][i] = 1
                 else:
-                    self.matrix[row*30+col][i] = damage_degree # used to be 0
+                    self.matrix[row*30+col][i] *= damage_degree # used to be 0
 
 
         # now make the color of the cell to be black
@@ -470,10 +469,9 @@ class Maze(object):
         return r
 
 
-    def setup_damage(self,find_path_mode_regular,interval,count,damage_mode):
+    def setup_damage(self,find_path_mode_regular,count,damage_mode):
         """
 
-        :param interval: time interval. For each of this interval we will do one or more damage
         :param count:  how many damage -1 means for ever
         :param spread: spread the damage or not
         :param row: you optionalluy specify a row and column
@@ -487,7 +485,6 @@ class Maze(object):
         else:
             self.damage_policy_spread = False
         self.find_path_mode_regular = find_path_mode_regular
-        self.damage_interval = interval
         self.damage_count = count
         self.damage_timer = 0
         self.damage_mode = damage_mode
@@ -532,8 +529,6 @@ class Maze(object):
         if self.damage_mode != config.DAMAGE_MODE_SPREAD_CELL:
             r = self.a_random_cell()
             self.cells_to_damage.append(r)
-            if self.damage_mode == config.DAMAGE_MODE_ADJ_CELL:
-                self.cells_to_damage.extend(self.find_adjacent_cells(r[0],r[1]))
             return
         elif initial:
             r = self.a_random_cell()
@@ -564,38 +559,6 @@ class Maze(object):
         :return:
         """
         return self.board[row][col].is_not_travellable
-
-
-    def damage_old(self):
-        """
-        Damage
-        Based on the interval specified it will start the damaging or not
-        The self.cells_to_damage list contains next cells to damage. Go through it and damage
-        And then find its adjucent cells and add to the list for next iteration
-        :return:
-        """
-        # if already damaged the number of items to damage is done return
-        if self.damage_count ==0:
-            return False
-        damaged = False
-        damage_degree = self.damage_generator.get_damage()
-        damage_index = self.damage_generator.get_index()
-        # damage_timer increament every time damage is called and if it is ewual to the intercal damage and reset the counter
-        if self.damage_timer == self.damage_interval:
-            # damage what ever in the list
-            for r in self.cells_to_damage:
-                self.damage_a_cell(r[0],r[1],damage_degree,damage_index,True)
-                damaged = True
-            # now add with new ie adjecent for each of them in the list
-            self.damage_count -=1
-            self.damage_timer = 0
-            self.update_next_damage_cells(False)
-
-        else:
-            self.damage_timer +=1
-
-        return damaged
-
 
     def damage(self,damageble_cells):
         for c,v in damageble_cells.items():
