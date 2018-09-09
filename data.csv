@@ -248,3 +248,17 @@ OMNICIENT   ,SINGLE CELL ,    7056.372,         172,        1000,1           ,  
 fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
 ------- 2018-09-08 22:45:01.025223 -------
 fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+------- 2018-09-08 22:48:22.372408 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+OMNICIENT   ,SINGLE CELL ,    7677.227,         220,        1000,0           ,       0.000,           0,          10
+------- 2018-09-08 22:50:01.332058 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+OMNICIENT   ,SINGLE CELL ,    7909.414,         210,        1000,1           ,    2628.533,         330,          10
+------- 2018-09-08 22:51:56.908987 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+------- 2018-09-08 22:52:58.637459 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+------- 2018-09-08 22:54:27.088570 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+OMNICIENT   ,NO DAMAGING ,    7565.386,         146,        1000,0           ,     142.265,           0,           0
+OMNICIENT   ,SINGLE CELL ,    7565.386,         146,        1000,0           ,     141.118,           0,          10

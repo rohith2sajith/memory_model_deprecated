@@ -9,7 +9,7 @@ import copy
 import time
 
 class DamageGeneratorSimple(object):
-    STATIC_DAMAGE_LIST=[0.0,0.8,0.6,0.3,0.1,0]
+    STATIC_DAMAGE_LIST=[0.9,0.8,0.6,0.3,0.1,0]
     index = 0
     def get_damage(self,idx=None):
         if not idx:
