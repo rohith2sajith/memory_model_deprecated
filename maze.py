@@ -173,7 +173,6 @@ class Maze(object):
     def update_matrix(self,x_f,y_f,rat):
         first_index = int(rat.get_y() // 20 * config.NUMBER_OF_CELLS + rat.get_x() // 20)
         second_index = int(y_f // 20 * config.NUMBER_OF_CELLS + x_f // 20)
-
         if first_index == second_index:
             self.matrix[first_index][first_index] = self.matrix[first_index][first_index] + config.ALPHA * (1 + config.GAMMA * self.matrix[second_index][first_index] - self.matrix[first_index][first_index])
         for c in range(config.NUMBER_OF_CELLS_SQR):

@@ -256,7 +256,7 @@ class MemoryModel (object):
         config.set_gamma(float(self.gamma_var.get()))
         config.set_alpha(float(self.alpha_var.get()))
         config.set_grid_size(int(self.grid_size_var.get()))
-
+        print(f"GAMMA:{config.GAMMA} ALPHA:{config.ALPHA}")
     def apply_config_handler(self):
         grid_size_changed = False
         if config.NUMBER_OF_CELLS != int(self.grid_size_var.get()):
@@ -290,6 +290,7 @@ class MemoryModel (object):
         self.rundata = rundata.RunData()
         self.apply_config()
         self.canvas.delete("path") # remove all paths
+        self.init_board()
         self.move_mouse(self.rat)
         self.print_board()
         # take snapshot of what we leanred
@@ -745,6 +746,12 @@ class MemoryModel (object):
         self.rundata.time = time
         self.update_status(f"Learning Length: {rat.get_distance():>15.2f}")
         self.reward_end = [rat.get_x(), rat.get_y()]
+        for m in range (900):
+            if self.board[m//(config.NUMBER_OF_CELLS)][m%(config.NUMBER_OF_CELLS)].is_not_travellable:
+                for n in range (900):
+                    self.my_maze.matrix[n][m] = 0
+                    self.my_maze.matrix[m][n] = 0
+
 
 
     def not_used_isOnLastCell(self,x_f,y_f):
