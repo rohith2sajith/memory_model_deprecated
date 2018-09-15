@@ -2,6 +2,7 @@ import tkinter
 import random
 import maze
 import mouse
+import config
 class Cell(object):
     def __init__(self, weight=-1, x=-1, y=-1, is_not_travellable=-1, travelled=-1, first_travelled = -1, traced=-1):
         self.weight=weight
@@ -12,9 +13,9 @@ class Cell(object):
         self.first_travelled = first_travelled
         self.traced = traced
         self.storage = []
-        for i in range (30):
+        for i in range (config.NUMBER_OF_CELLS):
             a_row = []
-            for j in range (30):
+            for j in range (config.NUMBER_OF_CELLS):
                 a_row.append(-1)
             self.storage.append(a_row)
 

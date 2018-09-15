@@ -252,7 +252,7 @@ class MemoryModel (object):
         # take snapshot of what we leanred
         self.my_maze.take_snapshot()
         self.damageble_cells_for_this_session = None # reset after start leaning
-
+        self.my_maze.save_matrix("ml.csv")
 
     def collect_data(self):
         f = open("data.csv", "w+")
@@ -283,7 +283,7 @@ class MemoryModel (object):
     def change_maze(self,maze_to_load):
         if self.current_maze != maze_to_load:
             # get the damaged cells list and degree first
-            board = maze_maker.MazeBuilder.load_board(f"{maze_to_load}.mze")
+            board = maze_maker.MazeBuilder.load_board(maze_to_load)
             self.my_maze.reinitialize(board)
             # remove unwanter uis
             self.remove_upper_layer()
@@ -367,6 +367,7 @@ class MemoryModel (object):
         damage_mode = int(self.damage_mode_var.get())
         damage_count = int(self.damage_count_var.get())
         r = self.find_path_omnicient(self.NUM_DIRECTIONS,damage_flag,damage_mode,damage_count)
+        self.my_maze.save_matrix("mo.csv")
         return r
 
     def find_path_omnicient(self,num_directions,damage_flag,damage_mode,damage_count):
@@ -420,7 +421,7 @@ class MemoryModel (object):
     def init_board(self):
         self.my_maze = maze.Maze(self)
         self.my_maze.setup_default_maze()
-        self.rat = mouse.Mouse(0, 599, 0, 0, 0, self)
+        self.rat = mouse.Mouse(0, config.BOARD_MAX-1, 0, 0, 0, self)
 
     def board(self):
         return self.my_maze.board
@@ -599,7 +600,7 @@ class MemoryModel (object):
             coords = rat.get_next_coor(rat.get_x(), rat.get_y())
             x_f = coords[0]
             y_f = coords[1]
-            if x_f<0 or x_f >=600 or y_f<0 or y_f >=600:
+            if x_f<0 or x_f >=config.BOARD_MAX or y_f<0 or y_f >=config.BOARD_MAX:
                 continue
             row = rat.get_y() // config.CELL_WIDTH
             col = rat.get_x()//config.CELL_WIDTH
@@ -638,7 +639,7 @@ class MemoryModel (object):
                                 y_f = float(int_point[0].y)
                             self.reset_velocity(rat)
                         elif vals[1] == 1:
-                            int_point = config.line_intersection(line, Line2D((600, 0), (600, 2)))
+                            int_point = config.line_intersection(line, Line2D((config.BOARD_MAX, 0), (config.BOARD_MAX, 2)))
                             if int_point and len(int_point):
                                 x_f = float(int_point[0].x)
                                 y_f = float(int_point[0].y)
@@ -650,7 +651,7 @@ class MemoryModel (object):
                                 y_f = float(int_point[0].y)
                             self.reset_velocity(rat)
                         elif vals[1] == 3:
-                            int_point = config.line_intersection(line, Line2D((0, 600), (2, 600)))
+                            int_point = config.line_intersection(line, Line2D((0, config.BOARD_MAX), (2, config.BOARD_MAX)))
                             if int_point and len(int_point):
                                 x_f = float(int_point[0].x)
                                 y_f = float(int_point[0].y)
@@ -665,7 +666,7 @@ class MemoryModel (object):
 
             if rat.get_t()%10 == 0:
                 self.my_maze.update_weight(rat)
-                zero_distance = sqrt(math.pow(rat.get_x()-0,2)+math.pow(rat.get_y()-599,2))
+                zero_distance = sqrt(math.pow(rat.get_x()-0,2)+math.pow(rat.get_y()-(config.BOARD_MAX-1),2))
                 displacements.append(zero_distance)
 
             row = int((y_f)// config.CELL_WIDTH)
@@ -680,8 +681,8 @@ class MemoryModel (object):
                 self.board()[row][col].travelled = rat.get_t()
                 self.my_maze.update_weight(rat)
                 self.board()[row][col].first_travelled = rat.get_t()
-                for a in range (30):
-                    for b in range (30):
+                for a in range (config.NUMBER_OF_CELLS):
+                    for b in range (config.NUMBER_OF_CELLS):
                         self.board()[row][col].storage[a][b] = self.board()[a][b].get_weight()
 
                 rat.set_t(rat.get_t()+1)
@@ -691,8 +692,8 @@ class MemoryModel (object):
         # update for last time
         self.my_maze.update_weight(rat)
         count = 0
-        for row in range (30):
-            for col in range(30):
+        for row in range (config.NUMBER_OF_CELLS):
+            for col in range(config.NUMBER_OF_CELLS):
                 if self.board()[row][col].weight>0:
                     count = count + 1
         self.rundata.num_squares = count
@@ -703,7 +704,7 @@ class MemoryModel (object):
         self.reward_end = [rat.get_x(), rat.get_y()]
 
 
-    def isOnLastCell(self,x_f,y_f):
+    def not_used_isOnLastCell(self,x_f,y_f):
         # check to see the points are on last cell
         return  x_f > config.exit_cell_x1() and x_f < config.exit_cell_x2() and y_f > config.exit_cell_y1() and y_f < config.exit_cell_y2()
 
@@ -736,7 +737,7 @@ class MemoryModel (object):
                 self.update_status(f"Calculating weights ...")
                 self.my_maze.create_weights_omnicient(rat,reward_row,reward_col)
                 self.update_status(f"Calculating weights completed")
-            elif damage_flag:
+            else:
                 self.update_status(f"Calculating weights ...")
                 self.my_maze.create_weights_learned(rat, reward_row, reward_col)
                 self.update_status(f"Calculating weights completed")
@@ -747,13 +748,13 @@ class MemoryModel (object):
             reward_col = reward_x // 20
         # damage
         # if damaging needed
-        config.il("BOARD BEFORE")
+        config.il("BOARD AFTER")
         self.print_board()
         # dmage
         learning_distance = rat.get_distance()
         rat.set_distance(0)
         starting_x = 0
-        starting_y = 599
+        starting_y = config.BOARD_MAX-1
         if special and self.reward_start:
             starting_x = self.reward_start[0]
             starting_y = self.reward_start[1]
@@ -793,7 +794,7 @@ class MemoryModel (object):
                 y_temp = next_coords[1]
                 row = int(y_temp//config.CELL_WIDTH)
                 col = int(x_temp//config.CELL_WIDTH)
-                if row >= 0 and row <=29 and col >=0 and col<=29:
+                if row >= 0 and row <=(config.NUMBER_OF_CELLS-1) and col >=0 and col<=(config.NUMBER_OF_CELLS-1):
                     w = self.board()[row][col].get_weight()
                     tr = y_f//config.CELL_WIDTH
                     tc = x_f//config.CELL_WIDTH
@@ -844,11 +845,11 @@ class MemoryModel (object):
 
     def reset_mouse(self, rat):
         rat.set_x(0)
-        rat.set_y(599)
+        rat.set_y(config.BOARD_MAX-1)
         rat.set_v_x(0)
         rat.set_v_y(0)
-        for row in range(30):
-            for col in range(30):
+        for row in range(config.NUMBER_OF_CELLS):
+            for col in range(config.NUMBER_OF_CELLS):
                 self.board()[row][col].set_weight(-1)
                 self.board()[row][col].travelled = -1
                 self.board()[row][col].traced = False

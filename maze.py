@@ -7,6 +7,7 @@ import numpy.linalg
 import scipy.stats as sp
 import copy
 import time
+import maze_maker
 
 class DamageGeneratorSimple(object):
     STATIC_DAMAGE_LIST=[0.9,0.8,0.6,0.3,0.1,0]
@@ -34,12 +35,12 @@ class Maze(object):
     DEFAULT_WEIGHT = 0.1  # default weight
 
     def __init__(self,memboard):
-        self.matrix = np.identity(900)
+        self.matrix = np.identity(config.NUMBER_OF_CELLS_SQR)
         self.w = []
         self.T = []
-        for d in range(900):
+        for d in range(config.NUMBER_OF_CELLS_SQR):
             self.w.append(0)
-            self.T.append([0] * 900)
+            self.T.append([0] * config.NUMBER_OF_CELLS_SQR)
 
         self.memboard = memboard
         self.blank_board()
@@ -66,12 +67,12 @@ class Maze(object):
 
 
     def reinitialize(self,board):
-        self.matrix = np.identity(900)
+        self.matrix = np.identity(config.NUMBER_OF_CELLS_SQR)
         self.w = []
         self.T = []
-        for d in range(900):
+        for d in range(config.NUMBER_OF_CELLS_SQR):
             self.w.append(0)
-            self.T.append([0] * 900)
+            self.T.append([0] * config.NUMBER_OF_CELLS_SQR)
 
         self.board = board
         self.reset_damaging()
@@ -159,162 +160,93 @@ class Maze(object):
                 self.board[i][j].set_weight(self.board[new_row][new_col].storage[i][j])
 
     def update_matrix_original(self,x_f,y_f,rat):
-        first_index = int(rat.get_y() // 20 * 30 + rat.get_x() // 20)
-        second_index = int(y_f // 20 * 30 + x_f // 20)
+        first_index = int(rat.get_y() // 20 * config.NUMBER_OF_CELLS + rat.get_x() // 20)
+        second_index = int(y_f // 20 * config.NUMBER_OF_CELLS + x_f // 20)
         if first_index == second_index:
             return
-        for c in range(900):
+        for c in range(config.NUMBER_OF_CELLS_SQR):
             if c == first_index:
                 self.matrix[first_index][c] = self.matrix[first_index][c] + config.ALPHA * (1 + config.GAMMA * self.matrix[second_index][c] - self.matrix[first_index][c])
             else:
                 self.matrix[first_index][c] = self.matrix[first_index][c] + config.ALPHA * (0 + config.GAMMA * self.matrix[second_index][c] - self.matrix[first_index][c])
 
     def update_matrix(self,x_f,y_f,rat):
-        first_index = int(rat.get_y() // 20 * 30 + rat.get_x() // 20)
-        second_index = int(y_f // 20 * 30 + x_f // 20)
+        first_index = int(rat.get_y() // 20 * config.NUMBER_OF_CELLS + rat.get_x() // 20)
+        second_index = int(y_f // 20 * config.NUMBER_OF_CELLS + x_f // 20)
 
         if first_index == second_index:
             self.matrix[first_index][first_index] = self.matrix[first_index][first_index] + config.ALPHA * (1 + config.GAMMA * self.matrix[second_index][first_index] - self.matrix[first_index][first_index])
-        for c in range(900):
+        for c in range(config.NUMBER_OF_CELLS_SQR):
             if c != first_index:
                 self.matrix[first_index][c] = self.matrix[first_index][c] + config.ALPHA * (0 + config.GAMMA * self.matrix[second_index][c] - self.matrix[first_index][c])
 
-    def not_used_recalculate_weights_learned(self,reward_row,reward_col):
-        reward_matrix = []
-        for f in range (900):
-            if f == reward_row*30+reward_col:
-                reward_matrix.append(1)
-            else:
-                reward_matrix.append(-1)
-        weights = []
-        for g in range (900):
-            sum = 0
-            for h in range (900):
-                sum += self.matrix[g][h]*reward_matrix[h]
-            weights.append(sum)
-        minus_one_equal = min(weights)
-        for i in range(len(weights)):
-            weights[i] = weights[i]*-1/minus_one_equal
-        for x in range (30):
-            for y in range (30):
-                self.board[x][y].set_weight(weights[30*x+y])
-
     def create_weights_learned(self,mouse,reward_row,reward_col):
         reward_matrix = []
-        for f in range (900):
-            if f == reward_row*30+reward_col:
+        for f in range (config.NUMBER_OF_CELLS_SQR):
+            if f == reward_row*config.NUMBER_OF_CELLS+reward_col:
                 reward_matrix.append(1)
             else:
                 reward_matrix.append(-1)
         weights = []
-        for g in range (900):
+        for g in range (config.NUMBER_OF_CELLS_SQR):
             sum = 0
-            for h in range (900):
+            for h in range (config.NUMBER_OF_CELLS_SQR):
                 sum += self.matrix[g][h]*reward_matrix[h]
             weights.append(sum)
-        minus_one_equal = min(weights)
-        for i in range(len(weights)):
-            weights[i] = weights[i]*-1/minus_one_equal
-        for x in range (30):
-            for y in range (30):
-                self.board[x][y].set_weight(weights[30*x+y])
+        for x in range (config.NUMBER_OF_CELLS):
+            for y in range (config.NUMBER_OF_CELLS):
+                self.board[x][y].set_weight(weights[config.NUMBER_OF_CELLS*x+y])
 
 
     def create_weights_omnicient(self,mouse,reward_row,reward_col):
         reward_matrix = []
-        for f in range (900):
-            if f == reward_row*30+reward_col:
+        for f in range (config.NUMBER_OF_CELLS_SQR):
+            if f == reward_row*config.NUMBER_OF_CELLS+reward_col:
                 reward_matrix.append(1)
             else:
                 reward_matrix.append(-1)
         weights = []
-        for g in range (900):
+        for g in range (config.NUMBER_OF_CELLS_SQR):
             sum = 0
-            for h in range (900):
+            for h in range (config.NUMBER_OF_CELLS_SQR):
                 sum += self.matrix[g][h]*reward_matrix[h]
             weights.append(sum)
-        minus_one_equal = min(weights)
-        for i in range(len(weights)):
-            weights[i] = weights[i]*-1/minus_one_equal
-        for x in range (30):
-            for y in range (30):
-                self.board[x][y].set_weight(weights[30*x+y])
-
-    def not_used_recalculate_weights(self,omnicient,reward_row,reward_col):
-        if self.find_path_mode_regular:
-            return
-        if omnicient:
-            self.recalculate_weights_omnicient(reward_row,reward_col)
-        else:
-            self.recalculate_weights_learned(reward_row,reward_col)
-
-    def not_used_recalculate_weights_omnicient(self,reward_row,reward_col):
-        """
-        Recalculate weights
-        :param reward_row:
-        :param reward_col:
-        :return:
-        """
-        t1 = int(round(time.time() * 1000))
-
-        reward_matrix = []
-        for f in range (900):
-            if f == reward_row*30+reward_col:
-                reward_matrix.append(1)
-            else:
-                reward_matrix.append(-1)
-        weights = []
-        t2 = int(round(time.time() * 1000))
-        for g in range (900):
-            sum = 0
-            for h in range (900):
-                sum += self.matrix[g][h]*reward_matrix[h]
-            weights.append(sum)
-        # debug
-        minus_one_equal = min(weights)
-        t3 = int(round(time.time() * 1000))
-        for i in range(len(weights)):
-            weights[i] = weights[i]*-1/minus_one_equal
-        t4 = int(round(time.time() * 1000))
-        for x in range (30):
-            for y in range (30):
-                self.board[x][y].set_weight(weights[30*x+y])
-        t5 = int(round(time.time() * 1000))
-        print(f"t5-t1: {t5-t1} t2-t1: {t2-t1} t3-t2: {t3-t1} t3-t3: {t4-t3} t5-t4: {t5-t4}")
-
+        for x in range (config.NUMBER_OF_CELLS):
+            for y in range (config.NUMBER_OF_CELLS):
+                self.board[x][y].set_weight(weights[config.NUMBER_OF_CELLS*x+y])
 
     def create_T(self,mouse):
-        for i in range (900):
-            if not self.board[int(i//30)][int(i%30)].is_not_travellable:
+        for i in range (config.NUMBER_OF_CELLS_SQR):
+            if not self.board[int(i//config.NUMBER_OF_CELLS)][int(i%config.NUMBER_OF_CELLS)].is_not_travellable:
                 for j in range (-2,3,1):
                     for k in range (-2,3,1):
-                        if int(i // 30)+j >= 0 and int(i // 30)+j <= 29 and int(i % 30)+k >= 0 and int(i % 30)+k <= 29:
-                            if not self.board[int(i // 30)+j][int(i % 30)+k].is_not_travellable:
-                                start_row = int(i//30)
-                                start_col = int(i % 30)
-                                next_row = int(i//30)+ j
-                                next_col = int(i % 30) + k
+                        if int(i // config.NUMBER_OF_CELLS)+j >= 0 and int(i // config.NUMBER_OF_CELLS)+j <=  (config.NUMBER_OF_CELLS-1) and int(i % config.NUMBER_OF_CELLS)+k >= 0 and int(i % config.NUMBER_OF_CELLS)+k <=  (config.NUMBER_OF_CELLS-1):
+                            if not self.board[int(i // config.NUMBER_OF_CELLS)+j][int(i % config.NUMBER_OF_CELLS)+k].is_not_travellable:
+                                start_row = int(i//config.NUMBER_OF_CELLS)
+                                start_col = int(i % config.NUMBER_OF_CELLS)
+                                next_row = int(i//config.NUMBER_OF_CELLS)+ j
+                                next_col = int(i % config.NUMBER_OF_CELLS) + k
                                 p_row = sp.norm.cdf(next_row-start_row+0.5,0,config.SIGMA2/(config.CELL_WIDTH)) - sp.norm.cdf(next_row-start_row-0.5,0,config.SIGMA2/(config.CELL_WIDTH))
                                 p_col = sp.norm.cdf(next_col-start_col+0.5,0,config.SIGMA2/(config.CELL_WIDTH)) - sp.norm.cdf(next_col-start_col-0.5,0,config.SIGMA2/(config.CELL_WIDTH))
                                 p = p_row * p_col
                                 if p < 0.001:
                                     p = 0
-                                self.T[i][30*(next_row)+(next_col)] = p
+                                self.T[i][config.NUMBER_OF_CELLS*(next_row)+(next_col)] = p
                 prob_sum = 0
                 for m in range (-2,3,1):
                     for n in range (-2,3,1):
-                        index_row = int(i//30)
-                        index_col = int(i % 30)
-                        if index_row+m >= 0 and index_row+m <= 29 and index_col+n >= 0 and index_col+n <= 29:
+                        index_row = int(i//config.NUMBER_OF_CELLS)
+                        index_col = int(i % config.NUMBER_OF_CELLS)
+                        if index_row+m >= 0 and index_row+m <= (config.NUMBER_OF_CELLS-1) and index_col+n >= 0 and index_col+n <= (config.NUMBER_OF_CELLS-1):
                             if not self.board[index_row+m][index_col+n].is_not_travellable:
-                                prob_sum += self.T[i][30*(index_row+m)+(index_col+n)]
+                                prob_sum += self.T[i][config.NUMBER_OF_CELLS*(index_row+m)+(index_col+n)]
                 if not prob_sum == 0:
-                    for s in range (900):
+                    for s in range (config.NUMBER_OF_CELLS_SQR):
                         self.T[i][s] *= (1/prob_sum)
         total = []
-        for b in range (900):
+        for b in range (config.NUMBER_OF_CELLS_SQR):
             sum = 0
-            for a in range (900):
+            for a in range (config.NUMBER_OF_CELLS_SQR):
                 sum += self.T[b][a]
             total.append(sum)
 
@@ -325,12 +257,12 @@ class Maze(object):
         self.matrix = self.set_successor(mouse)
 
     def set_successor(self, mouse):
-        i = np.identity(900)
+        i = np.identity(config.NUMBER_OF_CELLS_SQR)
         m_inverse = []
-        for d in range (900):
-            m_inverse.append([0]*900)
-        for p in range (900):
-            for q in range (900):
+        for d in range (config.NUMBER_OF_CELLS_SQR):
+            m_inverse.append([0]*config.NUMBER_OF_CELLS_SQR)
+        for p in range (config.NUMBER_OF_CELLS_SQR):
+            for q in range (config.NUMBER_OF_CELLS_SQR):
                 m_inverse[p][q] = i[p][q]-config.GAMMA * self.T[p][q]
         m = numpy.linalg.inv(m_inverse)
         return m
@@ -354,9 +286,10 @@ class Maze(object):
                 self.board[row][col] = my_cell
 
     def setup_default_maze(self):
-        self.setup_with_default_maze(self.board)
+        self.board = maze_maker.MazeBuilder.load_board("default")
+        #self.setup_with_default_maze(self.board)
 
-    def setup_with_default_maze(self,board):
+    def not_used_setup_with_default_maze(self,board):
         for k in range(12):
             board[k][0].is_not_travellable = True
 
@@ -435,11 +368,11 @@ class Maze(object):
         if self.find_path_mode_regular:
             self.board[row][col].set_weight(damage_degree)
         else:
-            for i in range (900):
-                if i == row*30+col:
-                    self.matrix[row*30+col][i] = 1
+            for i in range (config.NUMBER_OF_CELLS_SQR):
+                if i == row*config.NUMBER_OF_CELLS+col:
+                    self.matrix[row*config.NUMBER_OF_CELLS+col][i] = 1
                 else:
-                    self.matrix[row*30+col][i] *= damage_degree # used to be 0
+                    self.matrix[row*config.NUMBER_OF_CELLS+col][i] *= damage_degree # used to be 0
 
 
         # now make the color of the cell to be black
@@ -557,3 +490,14 @@ class Maze(object):
             damage_degree = v[0]
             damage_index = v[1]
             self.damage_a_cell(c[0], c[1], damage_degree, damage_index, True)
+
+    def save_matrix(self, filename):
+        with open(filename, 'w') as mfile:
+            for row in range(0, config.NUMBER_OF_CELLS_SQR):
+                mfile.write(f"{row},")
+            mfile.write("\n")
+            for row in range(0, config.NUMBER_OF_CELLS_SQR):
+                str = ""
+                for col in range(0, config.NUMBER_OF_CELLS_SQR):
+                    str = f"{str}{self.matrix[row][col]},"
+                mfile.write(f"{str}\n")

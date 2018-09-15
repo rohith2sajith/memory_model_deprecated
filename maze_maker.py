@@ -3,6 +3,7 @@ import config as config
 import cell
 import maze
 from tkinter import filedialog
+import os
 
 class MazeBuilder:
     DEFAULT_WEIGHT = 0.1  # default weight
@@ -169,12 +170,14 @@ class MazeBuilder:
     @staticmethod
     def load_board(filename):
         board = MazeBuilder.blank_board()
-        with open(filename, 'r') as maz_file:
-            for line in maz_file:
-                line = line.strip("\n")
-                my_cell = cell.Cell()
-                row, col = my_cell.deserialize(line)
-                board[row][col] = my_cell
+        filename = f"mazes/{filename}_{config.NUMBER_OF_CELLS}x{config.NUMBER_OF_CELLS}.mze"
+        if os.path.isfile(filename):
+            with open(filename, 'r') as maz_file:
+                for line in maz_file:
+                    line = line.strip("\n")
+                    my_cell = cell.Cell()
+                    row, col = my_cell.deserialize(line)
+                    board[row][col] = my_cell
         return board
 
 

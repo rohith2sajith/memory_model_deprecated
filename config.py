@@ -6,7 +6,9 @@ CELL_WIDTH = 20  # square width
 DEFAULT_WEIGHT = 0.1  # default weight
 WALKABLE_CELL_COLOR = "white"
 BLOCKED_CELL_COLOR = "gray"
-NUMBER_OF_CELLS = 30
+NUMBER_OF_CELLS = 30 # 30
+NUMBER_OF_CELLS_SQR = NUMBER_OF_CELLS*NUMBER_OF_CELLS
+BOARD_MAX=NUMBER_OF_CELLS*CELL_WIDTH
 MOUSE_RADIUS = 8
 MOUSE_FILL_COLOR = "red"
 SUGGESTED_MOUSE_FILL_COLOR = "yellow"
@@ -26,7 +28,7 @@ SIGMA2 = 10
 MEAN = 0
 MIN = 0.5
 MAX_Y = 30
-GAMMA = 0.5
+GAMMA = 0.9
 
 
 
@@ -36,14 +38,14 @@ def max_y_coord():
 def max_x_coord():
     return CELL_WIDTH * NUMBER_OF_CELLS # 600
 
-def exit_cell_x1():
+def not_used_exit_cell_x1():
     return 200
-def exit_cell_x2():
+def not_used_exit_cell_x2():
     return 220
 
-def exit_cell_y1():
+def not_used_exit_cell_y1():
     return 300
-def exit_cell_y2():
+def not_used_exit_cell_y2():
     return 320
 
 def d(msg):

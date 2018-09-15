@@ -78,11 +78,11 @@ class Mouse(object):
     def off_grid(self,x_f,y_f):
         if x_f < 0:
             return [True,0]
-        elif x_f > 600:
+        elif x_f > config.BOARD_MAX:
             return [True,1]
         elif y_f < 0:
             return [True,2]
-        elif y_f > 600:
+        elif y_f > config.BOARD_MAX:
             return [True,3]
         else:
             return [False,0]
@@ -99,9 +99,9 @@ class Mouse(object):
             x_f = x - d_x
         if y+d_y < 0:
             y_f = y - d_y
-        if x + d_x > 600:
+        if x + d_x > config.BOARD_MAX:
             x_f = x - d_x
-        if y + d_y > 600:
+        if y + d_y > config.BOARD_MAX:
             y_f = y - d_y
 
 
