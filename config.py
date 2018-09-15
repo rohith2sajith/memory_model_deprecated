@@ -31,7 +31,19 @@ MAX_Y = 30
 GAMMA = 0.9
 
 
-
+def set_grid_size(grid_size):
+    global NUMBER_OF_CELLS
+    global NUMBER_OF_CELLS_SQR
+    global BOARD_MAX
+    NUMBER_OF_CELLS=grid_size
+    NUMBER_OF_CELLS_SQR = NUMBER_OF_CELLS * NUMBER_OF_CELLS
+    BOARD_MAX = NUMBER_OF_CELLS * CELL_WIDTH
+def set_gamma(gamma):
+    global GAMMA
+    GAMMA = gamma
+def set_alpha(alpha):
+    global ALPHA
+    ALPHA = alpha
 def max_y_coord():
     return CELL_WIDTH * NUMBER_OF_CELLS # 600
 

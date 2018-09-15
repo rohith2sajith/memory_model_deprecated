@@ -59,10 +59,10 @@ class MemoryModel (object):
         special_path_button.grid(row=2, column=0)
         omnicient_button.grid(row=3, column=0)
         stop_button.grid(row=4, column=0)
+
         mark_goal_button.grid(row=0, column=1)
         analyze_damage_button.grid(row=1,column=1)
         collect_data_button.grid(row=2, column=1)
-
 
         return button_group
 
@@ -89,6 +89,9 @@ class MemoryModel (object):
         tkinter.Entry(config_panel_group, width=10,textvar=self.gamma_var).grid(sticky="W",row=1,column=1)
         tkinter.Label(config_panel_group, text='ALPHA', width=10).grid(sticky="W", row=2, column=0)
         tkinter.Entry(config_panel_group, width=10, textvar=self.alpha_var).grid(sticky="W", row=2, column=1)
+        tkinter.Label(config_panel_group, text='GRID SIZE', width=10).grid(sticky="W", row=3, column=0)
+        tkinter.Entry(config_panel_group, width=10, textvar=self.grid_size_var).grid(sticky="W", row=3, column=1)
+        refresh_button = tkinter.Button(config_panel_group, text='APPLY', width=20, command=self.apply_config_handler).grid(sticky="W", row=3, column=2)
 
         return config_panel_group
 
@@ -113,6 +116,46 @@ class MemoryModel (object):
 
         return damage_group
 
+    def create_canvas(self,canvas_frame):
+        self.canvas = tkinter.Canvas(canvas_frame,
+                                     width=config.CELL_WIDTH * config.NUMBER_OF_CELLS,
+                                     height=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
+        self.left = tkinter.Canvas(canvas_frame,
+                              width=config.CELL_WIDTH,
+                              height=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
+        self.right = tkinter.Canvas(canvas_frame,
+                               width=config.CELL_WIDTH,
+                               height=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
+
+        # pack mean you add show the canvas. By default it will not show
+        self.left.grid(row=1, column=0)
+        self.canvas.grid(row=1, column=1)
+        self.right.grid(row=1, column=2)
+        self.canvas.bind("<Button-1>", self.on_clicked)
+
+    def resize(self):
+        self.canvas.delete("all")
+        self.canvas.config( width=config.CELL_WIDTH * config.NUMBER_OF_CELLS,height=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
+        self.left.config(width=config.CELL_WIDTH,
+                              height=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
+        self.right.config( width=config.CELL_WIDTH,
+                               height=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
+        self.setup_ui_cells()
+    def setup_ui_cells(self):
+        # now create rectangle
+        for i in range(config.NUMBER_OF_CELLS):
+            for j in range(config.NUMBER_OF_CELLS):
+                cell = self.board()[i][j]
+                # rectangle need (x1,y1) and x2,y2)
+                if cell.is_not_travellable:
+                    fill_color = self.BLOCKED_CELL_COLOR
+                else:
+                    fill_color = self.WALKABLE_CELL_COLOR
+                box = self.canvas.create_rectangle(self.CELL_WIDTH * j,
+                                              self.CELL_WIDTH * i,
+                                              self.CELL_WIDTH * (j + 1),
+                                              self.CELL_WIDTH * (i + 1),
+                                              fill=fill_color)
 
     def draw_board(self):
         self.root = tkinter.Tk()  # start the gui engine
@@ -125,7 +168,7 @@ class MemoryModel (object):
         self.maze_name_var = StringVar()
         self.gamma_var = DoubleVar()
         self.alpha_var = DoubleVar()
-
+        self.grid_size_var = IntVar()
 
         self.strategy_var.set(1)
         self.damage_var.set(1)
@@ -135,6 +178,7 @@ class MemoryModel (object):
         self.iterations_var.set(config.num_learning_steps)
         self.gamma_var.set(config.GAMMA)
         self.alpha_var.set(config.ALPHA)
+        self.grid_size_var.set(config.NUMBER_OF_CELLS)
 
         ## TOP CONTROL BUTTON FRAME
         self.top_frame = tkinter.Frame(self.root)
@@ -158,42 +202,30 @@ class MemoryModel (object):
 
         ## BOARD CANVASE FRAME
         # you can draw rectangle , lines points etc in a canvas
-        canvas_frame = tkinter.Frame(self.root)
-        self.canvas = tkinter.Canvas(canvas_frame,
-                                width=config.CELL_WIDTH * config.NUMBER_OF_CELLS,
-                                height=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
-        left = tkinter.Canvas(canvas_frame,
-                       width=config.CELL_WIDTH ,
-                       height=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
-        right = tkinter.Canvas(canvas_frame,
-                              width=config.CELL_WIDTH,
-                              height=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
-
-        canvas_frame.grid(row=0,column=1)
-        # pack mean you add show the canvas. By default it will not show
-        left.grid(row=1,column=0)
-        self.canvas.grid(row=1, column=1)
-        right.grid(row=1, column=2)
-        self.canvas.bind("<Button-1>", self.on_clicked)
-        ## BOTTOM STATUS FRAME
-        self.status = tkinter.Label(self.root, text="STATUS:")
-        self.status.grid(sticky="W",row=2, column=0,columnspan=2)
+        self.canvas_frame = tkinter.Frame(self.root)
+        self.canvas_frame.grid(row=0, column=1)
+        self.create_canvas(self.canvas_frame)
 
         # now create rectangle
-        for i in range(config.NUMBER_OF_CELLS):
-            for j in range(config.NUMBER_OF_CELLS):
-                cell = self.board()[i][j]
-                # rectangle need (x1,y1) and x2,y2)
-                if cell.is_not_travellable:
-                    fill_color = self.BLOCKED_CELL_COLOR
-                else:
-                    fill_color = self.WALKABLE_CELL_COLOR
-                box = self.canvas.create_rectangle(self.CELL_WIDTH * j,
-                                              self.CELL_WIDTH * i,
-                                              self.CELL_WIDTH * (j + 1),
-                                              self.CELL_WIDTH * (i + 1),
-                                              fill=fill_color)
+        self.setup_ui_cells()
+        #for i in range(config.NUMBER_OF_CELLS):
+        #    for j in range(config.NUMBER_OF_CELLS):
+        #        cell = self.board()[i][j]
+        #        # rectangle need (x1,y1) and x2,y2)
+        #        if cell.is_not_travellable:
+        #            fill_color = self.BLOCKED_CELL_COLOR
+        #       else:
+        #            fill_color = self.WALKABLE_CELL_COLOR
+        #        box = self.canvas.create_rectangle(self.CELL_WIDTH * j,
+        #                                      self.CELL_WIDTH * i,
+        #                                      self.CELL_WIDTH * (j + 1),
+        #                                      self.CELL_WIDTH * (i + 1),
+        #                                      fill=fill_color)
+        ## BOTTOM STATUS FRAME
+        self.status = tkinter.Label(self.root, text="STATUS:")
+        self.status.grid(sticky="W", row=2, column=0, columnspan=2)
         # you need to call this so that the GUI start running
+
 
         self.root.mainloop()
 
@@ -221,8 +253,19 @@ class MemoryModel (object):
         :return:
         """
         config.num_learning_steps=int(self.iterations_var.get())
-        config.GAMMA = float(self.gamma_var.get())
-        config.ALPHA = float(self.alpha_var.get())
+        config.set_gamma(float(self.gamma_var.get()))
+        config.set_alpha(float(self.alpha_var.get()))
+        config.set_grid_size(int(self.grid_size_var.get()))
+
+    def apply_config_handler(self):
+        grid_size_changed = False
+        if config.NUMBER_OF_CELLS != int(self.grid_size_var.get()):
+            grid_size_changed = True
+        self.apply_config()
+        if grid_size_changed:
+            board = maze_maker.MazeBuilder.load_board("default")
+            self.my_maze.reinitialize(board)
+            self.resize()
 
     def on_clicked(self,e):
         if not self.marking_reward_space: # not in marking mode
