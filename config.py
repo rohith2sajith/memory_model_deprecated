@@ -6,7 +6,7 @@ CELL_WIDTH = 20  # square width
 DEFAULT_WEIGHT = 0.1  # default weight
 WALKABLE_CELL_COLOR = "white"
 BLOCKED_CELL_COLOR = "gray"
-NUMBER_OF_CELLS = 30 # 30
+NUMBER_OF_CELLS = 10 # 30
 NUMBER_OF_CELLS_SQR = NUMBER_OF_CELLS*NUMBER_OF_CELLS
 BOARD_MAX=NUMBER_OF_CELLS*CELL_WIDTH
 MOUSE_RADIUS = 8
@@ -21,6 +21,8 @@ log_level = LOG_LEVEL_INFO
 DAMAGE_MODE_SINGLE_CELL=0
 DAMAGE_MODE_SPREAD_CELL=1
 MAZE_LIST=["default","maze1","maze2","maze3","maze4"]
+SIGMA2_INC=0.1
+SIGMA1_INC=0.1
 
 ALPHA = 0.9
 SIGMA1 = 10
@@ -44,6 +46,19 @@ def set_gamma(gamma):
 def set_alpha(alpha):
     global ALPHA
     ALPHA = alpha
+def incr_sigma2():
+    global SIGMA2
+    SIGMA2 += SIGMA2_INC
+def decr_sigma2(sigma2):
+    global SIGMA2
+    SIGMA2 -= SIGMA2_INC
+
+def incr_sigma1():
+    global SIGMA1
+    SIGMA1 +=SIGMA1_INC
+def decr_sigma1():
+    global SIGMA1
+    SIGMA1 -=SIGMA1_INC
 def max_y_coord():
     return CELL_WIDTH * NUMBER_OF_CELLS # 600
 

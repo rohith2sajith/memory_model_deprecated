@@ -23,7 +23,8 @@ class Cell(object):
 
     def __str__(self):
         #return f'({self.x},{self.y},{self.weight} )'
-        return "{:10.5f} ".format(self.weight)
+        #return "{:10.5f} ".format(self.weight)
+        return "{:10.5f} ".format(self.is_not_travellable)
 
     def get_weight(self):
         return self.weight

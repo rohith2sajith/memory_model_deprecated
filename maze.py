@@ -8,6 +8,8 @@ import scipy.stats as sp
 import copy
 import time
 import maze_maker
+from operator import itemgetter
+
 
 class DamageGeneratorSimple(object):
     STATIC_DAMAGE_LIST=[0.9,0.8,0.6,0.3,0.1,0]
@@ -51,6 +53,13 @@ class Maze(object):
         self.snapshot_T = None
         self.travelled_cells = []
         self.damage_generator = DamageGeneratorSimple()
+
+    def reset_board_flags(self):
+        for row in range(config.NUMBER_OF_CELLS):
+            for col in range(config.NUMBER_OF_CELLS):
+                self.board[row][col].travelled = -1
+                self.board[row][col].traced = False
+                self.board[row][col].first_travelled = -1
 
     def progress_damage(self):
         """
@@ -173,28 +182,67 @@ class Maze(object):
     def update_matrix(self,x_f,y_f,rat):
         first_index = int(rat.get_y() // 20 * config.NUMBER_OF_CELLS + rat.get_x() // 20)
         second_index = int(y_f // 20 * config.NUMBER_OF_CELLS + x_f // 20)
+
         if first_index == second_index:
-            self.matrix[first_index][first_index] = self.matrix[first_index][first_index] + config.ALPHA * (1 + config.GAMMA * self.matrix[second_index][first_index] - self.matrix[first_index][first_index])
+            if self.matrix[first_index][first_index] == 1: # first time
+                self.matrix[first_index][first_index] = self.matrix[first_index][first_index] + config.ALPHA * (1 + config.GAMMA * self.matrix[second_index][first_index] - self.matrix[first_index][first_index])
+            else:
+                return # no action
         for c in range(config.NUMBER_OF_CELLS_SQR):
             if c != first_index:
                 self.matrix[first_index][c] = self.matrix[first_index][c] + config.ALPHA * (0 + config.GAMMA * self.matrix[second_index][c] - self.matrix[first_index][c])
 
+
+    def has_visited_once(self,row,col):
+        if row == col:
+            return self.matrix[row][col] != 1
+        return self.matrix[row][col] != 0
+
     def create_weights_learned(self,mouse,reward_row,reward_col):
         reward_matrix = []
+        reward_matrix2 = []
         for f in range (config.NUMBER_OF_CELLS_SQR):
             if f == reward_row*config.NUMBER_OF_CELLS+reward_col:
                 reward_matrix.append(1)
             else:
                 reward_matrix.append(-1)
+            # create another based on how recent they visited
+            r = f//config.NUMBER_OF_CELLS
+            c = f%config.NUMBER_OF_CELLS
+            reward_matrix2.append(self.board[r][c].travelled)
         weights = []
+        weights2 = []
         for g in range (config.NUMBER_OF_CELLS_SQR):
             sum = 0
+            sum2=0
             for h in range (config.NUMBER_OF_CELLS_SQR):
                 sum += self.matrix[g][h]*reward_matrix[h]
+                sum2 += self.matrix[g][h]*reward_matrix2[h]
             weights.append(sum)
+            weights2.append(sum2)
+
+        not_travelled_weight = min(weights) -50
+        not_travelled_weight2 = min(weights2) -50
+
+        debug_sorted_weight = {}
+        debug_sorted_weight2 = {}
         for x in range (config.NUMBER_OF_CELLS):
             for y in range (config.NUMBER_OF_CELLS):
-                self.board[x][y].set_weight(weights[config.NUMBER_OF_CELLS*x+y])
+                wt = weights[config.NUMBER_OF_CELLS*x+y]
+                wt2 = weights2[config.NUMBER_OF_CELLS*x+y]
+                if self.board[x][y].travelled == -1: # if never visited use a lower value
+                    wt = not_travelled_weight
+                    wt2 = not_travelled_weight2
+                debug_sorted_weight[(config.NUMBER_OF_CELLS*x+y)]=wt
+                debug_sorted_weight2[(config.NUMBER_OF_CELLS*x+y)]=wt2
+                self.board[x][y].set_weight(wt)
+        print("USING identity")
+        for kv in sorted(debug_sorted_weight.items(), key=itemgetter(1)):
+            print(f"{kv[0]} - {kv[1]}")
+        print("USING recently visited")
+        for kv in sorted(debug_sorted_weight2.items(), key=itemgetter(1)):
+            print(f"{kv[0]} - {kv[1]}")
+
 
 
     def create_weights_omnicient(self,mouse,reward_row,reward_col):

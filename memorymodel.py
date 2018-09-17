@@ -18,6 +18,8 @@ from tkinter import IntVar
 from tkinter import StringVar
 from tkinter import DoubleVar
 from datetime import datetime
+from operator import itemgetter
+import trap_finder
 
 class MemoryModel (object):
 
@@ -171,7 +173,7 @@ class MemoryModel (object):
         self.grid_size_var = IntVar()
 
         self.strategy_var.set(1)
-        self.damage_var.set(1)
+        self.damage_var.set(0)
         self.damage_count_var.set("10")
         self.damage_mode_var.set("0")
         self.maze_name_var.set("default")
@@ -289,8 +291,8 @@ class MemoryModel (object):
         self.running_function = "LEARNING"
         self.rundata = rundata.RunData()
         self.apply_config()
+        self.my_maze.reset_board_flags()
         self.canvas.delete("path") # remove all paths
-        self.init_board()
         self.move_mouse(self.rat)
         self.print_board()
         # take snapshot of what we leanred
@@ -326,9 +328,13 @@ class MemoryModel (object):
 
     def change_maze(self,maze_to_load):
         if self.current_maze != maze_to_load:
+            print("=== BEFORE CHANGING ===")
+            self.print_board()
             # get the damaged cells list and degree first
             board = maze_maker.MazeBuilder.load_board(maze_to_load)
             self.my_maze.reinitialize(board)
+            print("=== AFTER CHANGING ===")
+            self.print_board()
             # remove unwanter uis
             self.remove_upper_layer()
             self.update_ui(board)
@@ -637,23 +643,39 @@ class MemoryModel (object):
         displacements = []
         time = 0
         q = 0
+        # use trap finder look for last 50 moves and if the move found 10% match tag it as a trap
+        last_time_sigma1_increased = None
+        last_visited_row=None
+        last_visited_col=None
+        continious_visit_count=0
+        last_x = None
+        last_y = None
+        last_safe_cell = None
+        force_to_move_back = False
+        print("BEFORE STARTING LEARNING")
+        self.print_board()
         while q < config.num_learning_steps:
-        #for q in range (config.num_learning_steps):
-        #while not self.isOnLastCell(rat.get_x(),rat.get_y()):
-            coords = [0,config.max_y_coord()]
-            coords = rat.get_next_coor(rat.get_x(), rat.get_y())
+            # if we have identfied a trap. The best way is to go back
+            # to the previous position in last cell and try again
+            # high chance of move out of the trap
+            if force_to_move_back:
+                coords = [last_x,last_y]
+            else:
+                coords = rat.get_next_coor(rat.get_x(), rat.get_y())
+            force_to_move_back = False
+
             x_f = coords[0]
             y_f = coords[1]
             if x_f<0 or x_f >=config.BOARD_MAX or y_f<0 or y_f >=config.BOARD_MAX:
                 continue
             row = rat.get_y() // config.CELL_WIDTH
             col = rat.get_x()//config.CELL_WIDTH
+            # checking to see we have intercepted in non travellable cells
 
             for  i in range (-1,2,1):
                 for j in range (-1,2,1):
                     if row+i >=0 and row+i <=config.NUMBER_OF_CELLS-1 and col+j>=0 and col+j <=config.NUMBER_OF_CELLS-1:
                         if self.board()[int(row+i)][int(col+j)].is_not_travellable:
-                            # ORIGINAL arr = rat.intersect2(rat.get_x(),rat.get_y(),x_f,y_f,config.CELL_WIDTH*j,config.CELL_WIDTH*i)
                             int_arr = rat.intersect2(rat.get_x(), rat.get_y(), x_f, y_f, config.CELL_WIDTH * (col+j), config.CELL_WIDTH *(row+ i))
                             if int_arr[0]:
                                 arr = int_arr[1] # array of array of intersection points
@@ -669,6 +691,8 @@ class MemoryModel (object):
                                     else:
                                         x_f = arr[0][0]
                                         y_f = arr[0][1]
+                                else:
+                                    print(f"#####MORE INTERSECTIONS THAN EXPECTED..... {len(arr)}")
 
                                 self.reset_velocity(rat)
                     vals = rat.off_grid(x_f, y_f)  # of the grid
@@ -700,11 +724,7 @@ class MemoryModel (object):
                                 x_f = float(int_point[0].x)
                                 y_f = float(int_point[0].y)
                             self.reset_velocity(rat)
-            #if self.isOnLastCell(x_f,y_f):
-                #rat.move(x_f,y_f)
-                #self.board()[int((y_f-0.00001) // config.CELL_WIDTH)][int((x_f-0.00001) //config.CELL_WIDTH)].travelled = rat.get_t()
-                #self.my_maze.update_weight(rat)
-                #break
+
             row = int(y_f // config.CELL_WIDTH)
             col = int(x_f // config.CELL_WIDTH)
 
@@ -715,10 +735,12 @@ class MemoryModel (object):
 
             row = int((y_f)// config.CELL_WIDTH)
             col = int((x_f) // config.CELL_WIDTH)
-            if not self.board()[row][col].is_not_travellable:
-                #self.my_maze.update_weight(rat)
-                self.my_maze.update_matrix(x_f,y_f,rat)
 
+            if not self.board()[row][col].is_not_travellable:
+                # before move save last mose cords
+                last_mouse_cords = (rat.get_x(),rat.get_y())
+
+                self.my_maze.update_matrix(x_f,y_f,rat)
                 rat.move(x_f,y_f)
                 q +=1
                 self.my_maze.register_travelled_cell(row,col)
@@ -730,7 +752,26 @@ class MemoryModel (object):
                         self.board()[row][col].storage[a][b] = self.board()[a][b].get_weight()
 
                 rat.set_t(rat.get_t()+1)
+                # Trap adjustments
+                if last_visited_row == row and last_visited_col == col:
+                    continious_visit_count +=1
+                else:
+                    continious_visit_count = 0
+                    last_x = last_mouse_cords[0]
+                    last_y = last_mouse_cords[1]
+                    last_safe_cell = (int(last_y // config.CELL_WIDTH), int(last_x // config.CELL_WIDTH))
+                    current_cell = (row,col)
+
+                last_visited_row = row
+                last_visited_col = col
+                if (continious_visit_count>10): # trapped
+                    continious_visit_count = 0
+                    force_to_move_back=True
+                    last_safe_cell = (int(last_y // config.CELL_WIDTH), int(last_x // config.CELL_WIDTH))
                 time = time + 1
+            else:
+                print("*",end='')
+
             self.update_status(f"Learning:{q:>8}")
 
         # update for last time
@@ -746,13 +787,15 @@ class MemoryModel (object):
         self.rundata.time = time
         self.update_status(f"Learning Length: {rat.get_distance():>15.2f}")
         self.reward_end = [rat.get_x(), rat.get_y()]
-        for m in range (900):
-            if self.board[m//(config.NUMBER_OF_CELLS)][m%(config.NUMBER_OF_CELLS)].is_not_travellable:
-                for n in range (900):
+        print("Adjusting matrics for not visited")
+        for m in range (config.NUMBER_OF_CELLS_SQR):
+            r = m//config.NUMBER_OF_CELLS
+            c = m%config.NUMBER_OF_CELLS
+
+            if self.board()[r][c].travelled == -1: # not travelled
+                for n in range (config.NUMBER_OF_CELLS_SQR):
                     self.my_maze.matrix[n][m] = 0
                     self.my_maze.matrix[m][n] = 0
-
-
 
     def not_used_isOnLastCell(self,x_f,y_f):
         # check to see the points are on last cell
@@ -761,6 +804,12 @@ class MemoryModel (object):
     def generate_damageble_cells(self,damage_mode,damage_count):
         dm = damager.DamageManager(self.board(),self.damage_generator,damage_mode,damage_count,self.my_maze.travelled_cells)
         return dm.get_damagable_cells()
+
+    def gen_status_string(self,find_path_mode,loop_count,trap_count):
+        str = f"Processing {find_path_mode:>12}..."
+        str = f"{str} [{loop_count:>6} traps: {trap_count:>8}"
+        str = f"{str} , damaged:{self.my_maze.get_damaged_cell_count():>8}]"
+        return str
 
     def path(self,find_path_mode,rat,num_directions,special,omnicient,damage_flag,damage_mode,damage_count,damageble_cells):
         reward_row = 10
@@ -823,15 +872,20 @@ class MemoryModel (object):
         weights = []
         weights_map = {}
         trap_count =  0
+        trap_count_delta=0
         cont_count = 0
+        count_trap_count=0
+        last_increased_sigma2=None
         counter = 0
-
+        # use trap finder look for last 50 moves and if the move found 10% match tag it as a trap
+        my_trap_finder = trap_finder.TrapFinder(history_length=50,tolerence_percentage=10)
         loop_count = 0
         while not math.pow(math.pow(reward_x-rat.get_x(),2)+math.pow(reward_y-rat.get_y(),2),1/2) < 10:
             if self.stop_path_flag:
                 break # asked to stop
             loop_count +=1
-            self.update_status(f"Processing {find_path_mode:>12}... [{loop_count:>6} traps: {trap_count:>8}, damaged:{self.my_maze.get_damaged_cell_count():>8}]")
+            self.update_status( self.gen_status_string(find_path_mode,loop_count,trap_count))
+
             weights.clear()
             arr.clear()
             for i in range (num_directions):
@@ -875,14 +929,33 @@ class MemoryModel (object):
                 new_col = b_max[0] // 20
                 prev_row = rat.get_y() // 20
                 prev_col = rat.get_x() // 20
+                # find trap in a new way
                 if new_row == prev_row and new_col == prev_col:
                     cont_count +=1
                     config.dl(f"TRAPPED IN THE SAME CELL {new_row} {new_col}")
                 else:
                     cont_count =0
-                if cont_count >= 10:
-                    trap_count +=1
-                    config.dl(f"TRAP COUNT INCR {trap_count}")
+
+                if my_trap_finder.register_visited(new_row,new_col):
+                    print(f"INCREASING SIGMA {loop_count} {config.SIGMA2}")
+                    config.incr_sigma2()
+                    trap_count += 1
+                    count_trap_count +=1
+                    last_increased_sigma2 = loop_count
+                else:
+                    count_trap_count = 0
+                # see if we increaed sigma and it is for a while, then decrease it
+                if last_increased_sigma2 and (loop_count-last_increased_sigma2)>20:
+                    config.decr_sigma2() # decrease
+                    print(f"DECREASING SIGMA {loop_count} {config.SIGMA2}")
+                    last_increased_sigma2=None
+                #if cont_count >= 10:
+                #    trap_count +=1
+                #    trap_count_delta+=1
+                #    config.dl(f"TRAP COUNT INCR {trap_count}")
+                #if trap_count_delta>20:
+                #    config.set_sigma2(config.SIGMA2+10)
+                #    trap_count_delta=0
                 if trap_count > 2000:
                     return False
                 rat.move(b_max[0], b_max[1])
