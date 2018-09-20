@@ -4,6 +4,7 @@ import cell
 import maze
 from tkinter import filedialog
 import os
+from tkinter import IntVar
 
 class MazeBuilder:
     DEFAULT_WEIGHT = 0.1  # default weight
@@ -13,41 +14,57 @@ class MazeBuilder:
         self.my_maze.blank_board()
         self.my_maze.setup_default_maze()
 
+    def setup_ui_control(self,my_frame):
+        tkinter.Button(my_frame, text='SAVE', width=20, command=self.save).grid(row=0, column=0)
+        tkinter.Button(my_frame, text='LOAD', width=20, command=self.load).grid(row=0, column=1)
+        tkinter.Label(my_frame, text='GRID SIZE', width=10).grid(sticky="W", row=1, column=0)
+        tkinter.Entry(my_frame, width=10, textvar=self.grid_size_var).grid(sticky="W", row=1, column=1)
+        tkinter.Button(my_frame, text='APPLY', width=20, command=self.apply_config_handler).grid(sticky="W", row=1, column=2)
+
+    def setup_ui_canvas(self,my_frame):
+        tkinter.Canvas(my_frame,
+                       width=config.CELL_WIDTH ,
+                       height=config.CELL_WIDTH * config.NUMBER_OF_CELLS).grid(sticky="W", row=0, column=0)
+
+        self.canvas = tkinter.Canvas(my_frame,
+                                width=config.CELL_WIDTH * config.NUMBER_OF_CELLS,
+                                height=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
+        self.canvas.grid(sticky="W", row=0, column=1)
+        tkinter.Canvas(my_frame,
+                              width=config.CELL_WIDTH,
+                              height=config.CELL_WIDTH * config.NUMBER_OF_CELLS).grid(sticky="W", row=0, column=2)
+
     def draw_board(self):
         self.root = tkinter.Tk()  # start the gui engine
 
-        ## TOP CONTROL FRAME
+        self.grid_size_var = IntVar()
+        self.grid_size_var.set(config.NUMBER_OF_CELLS)
+
         self.top_frame = tkinter.Frame(self.root)
-
-        self.learning_button = tkinter.Button(self.top_frame, text='SAVE',
-                                              width=20,
-                                              command=self.save)
-
-        self.path_button = tkinter.Button(self.top_frame, text='LOAD',
-                                          width=20,
-                                          command=self.load)
-        self.learning_button.grid(row=0, column=0)
-        self.path_button.grid(row=0, column=1)
         self.top_frame.grid(row=0, column=0)
 
-        ## BOARD CANVAS
-        canvas_frame = tkinter.Frame(self.root)
-        self.canvas = tkinter.Canvas(canvas_frame,
-                                width=config.CELL_WIDTH * config.NUMBER_OF_CELLS,
-                                height=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
-        left = tkinter.Canvas(canvas_frame,
-                       width=config.CELL_WIDTH ,
-                       height=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
-        right = tkinter.Canvas(canvas_frame,
-                              width=config.CELL_WIDTH,
-                              height=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
+        self.setup_ui_control(self.top_frame)
 
-        canvas_frame.grid(row=1,column=0)
+        canvas_frame = tkinter.Frame(self.root)
+        canvas_frame.grid(row=1, column=0)
+        self.setup_ui_canvas(canvas_frame)
+
+        #self.canvas = tkinter.Canvas(canvas_frame,
+        #                        width=config.CELL_WIDTH * config.NUMBER_OF_CELLS,
+        #                        height=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
+        #left = tkinter.Canvas(canvas_frame,
+        #               width=config.CELL_WIDTH ,
+        #               height=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
+        #right = tkinter.Canvas(canvas_frame,
+        #                      width=config.CELL_WIDTH,
+        #                      height=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
+
+
         # pack mean you add show the canvas. By default it will not show
-        left.grid(row=1,column=0)
-        self.canvas.grid(row=1, column=1)
-        right.grid(row=1, column=2)
-        self.canvas.bind("<Button-1>", self.on_clicked)
+        #left.grid(row=2,column=0)
+        #self.canvas.grid(row=2, column=1)
+        #right.grid(row=2, column=2)
+        #self.canvas.bind("<Button-1>", self.on_clicked)
 
         for i in range(config.NUMBER_OF_CELLS):
             for j in range(config.NUMBER_OF_CELLS):
@@ -62,6 +79,13 @@ class MazeBuilder:
 
         self.root.mainloop()
 
+    def apply_config_handler(self):
+        print("Apply config")
+
+        if config.NUMBER_OF_CELLS != int(self.grid_size_var.get()):
+            board = MazeBuilder.load_board("default")
+            self.my_maze.reinitialize(board)
+            self.resize()
     def to_tag(self,row,col):
         return f"{row}-{col}"
 

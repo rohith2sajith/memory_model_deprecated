@@ -200,50 +200,52 @@ class Maze(object):
 
     def create_weights_learned(self,mouse,reward_row,reward_col):
         reward_matrix = []
-        reward_matrix2 = []
         for f in range (config.NUMBER_OF_CELLS_SQR):
             if f == reward_row*config.NUMBER_OF_CELLS+reward_col:
                 reward_matrix.append(1)
             else:
                 reward_matrix.append(-1)
-            # create another based on how recent they visited
-            r = f//config.NUMBER_OF_CELLS
-            c = f%config.NUMBER_OF_CELLS
-            reward_matrix2.append(self.board[r][c].travelled)
         weights = []
-        weights2 = []
         for g in range (config.NUMBER_OF_CELLS_SQR):
             sum = 0
-            sum2=0
             for h in range (config.NUMBER_OF_CELLS_SQR):
                 sum += self.matrix[g][h]*reward_matrix[h]
-                sum2 += self.matrix[g][h]*reward_matrix2[h]
             weights.append(sum)
-            weights2.append(sum2)
 
         not_travelled_weight = min(weights) -50
-        not_travelled_weight2 = min(weights2) -50
 
-        debug_sorted_weight = {}
-        debug_sorted_weight2 = {}
         for x in range (config.NUMBER_OF_CELLS):
             for y in range (config.NUMBER_OF_CELLS):
                 wt = weights[config.NUMBER_OF_CELLS*x+y]
-                wt2 = weights2[config.NUMBER_OF_CELLS*x+y]
                 if self.board[x][y].travelled == -1: # if never visited use a lower value
                     wt = not_travelled_weight
-                    wt2 = not_travelled_weight2
-                debug_sorted_weight[(config.NUMBER_OF_CELLS*x+y)]=wt
-                debug_sorted_weight2[(config.NUMBER_OF_CELLS*x+y)]=wt2
                 self.board[x][y].set_weight(wt)
-        print("USING identity")
-        for kv in sorted(debug_sorted_weight.items(), key=itemgetter(1)):
-            print(f"{kv[0]} - {kv[1]}")
-        print("USING recently visited")
-        for kv in sorted(debug_sorted_weight2.items(), key=itemgetter(1)):
-            print(f"{kv[0]} - {kv[1]}")
+
+    def create_weights_learned_new(self,mouse,reward_row,reward_col):
+        reward_matrix = []
+        for f in range (config.NUMBER_OF_CELLS_SQR):
+            # create another based on how recent they visited
+            r = f//config.NUMBER_OF_CELLS
+            c = f%config.NUMBER_OF_CELLS
+            arr = [-1] * config.NUMBER_OF_CELLS_SQR
+            arr[f] = self.board[r][c].travelled
+            reward_matrix.append(arr)
+        weights = []
+        for g in range (config.NUMBER_OF_CELLS_SQR):
+            sum=0
+            for h in range (config.NUMBER_OF_CELLS_SQR):
+                sum += self.matrix[g][h]*reward_matrix[g][h]
+            weights.append(sum)
+
+        not_travelled_weight = min(weights) -50
 
 
+        for x in range (config.NUMBER_OF_CELLS):
+            for y in range (config.NUMBER_OF_CELLS):
+                wt = weights[config.NUMBER_OF_CELLS*x+y]
+                if self.board[x][y].travelled == -1: # if never visited use a lower value
+                    wt = not_travelled_weight
+                self.board[x][y].set_weight(wt)
 
     def create_weights_omnicient(self,mouse,reward_row,reward_col):
         reward_matrix = []

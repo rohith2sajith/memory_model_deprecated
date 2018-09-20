@@ -93,7 +93,8 @@ class MemoryModel (object):
         tkinter.Entry(config_panel_group, width=10, textvar=self.alpha_var).grid(sticky="W", row=2, column=1)
         tkinter.Label(config_panel_group, text='GRID SIZE', width=10).grid(sticky="W", row=3, column=0)
         tkinter.Entry(config_panel_group, width=10, textvar=self.grid_size_var).grid(sticky="W", row=3, column=1)
-        refresh_button = tkinter.Button(config_panel_group, text='APPLY', width=20, command=self.apply_config_handler).grid(sticky="W", row=3, column=2)
+        tkinter.Button(config_panel_group, text='APPLY', width=20, command=self.apply_config_handler).grid(sticky="W", row=3, column=2)
+        tkinter.Checkbutton(config_panel_group, text="Use new weight calc",var=self.use_new_weight_calc_var).grid(sticky="W", row=4, column=2)
 
         return config_panel_group
 
@@ -171,6 +172,7 @@ class MemoryModel (object):
         self.gamma_var = DoubleVar()
         self.alpha_var = DoubleVar()
         self.grid_size_var = IntVar()
+        self.use_new_weight_calc_var = IntVar()
 
         self.strategy_var.set(1)
         self.damage_var.set(0)
@@ -181,6 +183,7 @@ class MemoryModel (object):
         self.gamma_var.set(config.GAMMA)
         self.alpha_var.set(config.ALPHA)
         self.grid_size_var.set(config.NUMBER_OF_CELLS)
+        self.use_new_weight_calc_var.set(1)
 
         ## TOP CONTROL BUTTON FRAME
         self.top_frame = tkinter.Frame(self.root)
@@ -310,7 +313,7 @@ class MemoryModel (object):
             success = True
             for n in [5,10,15,20,30,40,60,80,100,150,200,300,400,600,1000]:
                 self.update_status(f"FIND PATH - RUN #:{i} NUM_DIRECTIONS #:{n}")
-                success = self.find_path(n,False,False,0,0,0,0)
+                success = self.find_path(n,False,False,0,0,0,0,True)
                 if not success:
                     break
                 f.write(str(self.rundata) + "\n")
@@ -416,14 +419,15 @@ class MemoryModel (object):
         damage_flag = self.damage_var.get()
         damage_mode = int(self.damage_mode_var.get())
         damage_count = int(self.damage_count_var.get())
-        r = self.find_path_omnicient(self.NUM_DIRECTIONS,damage_flag,damage_mode,damage_count)
+        use_new_weight_calc = bool(self.use_new_weight_calc_var.get())
+        r = self.find_path_omnicient(self.NUM_DIRECTIONS,damage_flag,damage_mode,damage_count,use_new_weight_calc)
         self.my_maze.save_matrix("mo.csv")
         return r
 
-    def find_path_omnicient(self,num_directions,damage_flag,damage_mode,damage_count):
+    def find_path_omnicient(self,num_directions,damage_flag,damage_mode,damage_count,use_new_weight_calc):
         self.running_function = "OMNICIENT"
         self.initialize_find_path("OMNICIENT",damage_flag,damage_mode,damage_count)
-        r = self.find_path("OMNICIENT",num_directions, True, True,damage_flag,damage_mode,damage_count)
+        r = self.find_path("OMNICIENT",num_directions, True, True,damage_flag,damage_mode,damage_count,use_new_weight_calc)
         self.finalize_find_path()
         return r
 
@@ -432,14 +436,14 @@ class MemoryModel (object):
         damage_flag = self.damage_var.get()
         damage_mode = int(self.damage_mode_var.get())
         damage_count = int(self.damage_count_var.get())
-
-        r =  self.find_path_regular(self.NUM_DIRECTIONS,damage_flag,damage_mode,damage_count)
+        use_new_weight_calc = bool(self.use_new_weight_calc_var.get())
+        r =  self.find_path_regular(self.NUM_DIRECTIONS,damage_flag,damage_mode,damage_count,use_new_weight_calc)
         return r
 
-    def find_path_regular(self,num_directions,damage_flag,damage_mode,damage_count):
+    def find_path_regular(self,num_directions,damage_flag,damage_mode,damage_count,use_new_weight_calc):
         self.running_function = "REGULAR"
         self.initialize_find_path("REGULAR",damage_flag,damage_mode,damage_count)
-        r = self.find_path("REGULAR",num_directions, False, False,damage_flag,damage_mode,damage_count)
+        r = self.find_path("REGULAR",num_directions, False, False,damage_flag,damage_mode,damage_count,use_new_weight_calc)
         self.finalize_find_path()
         return r
 
@@ -447,22 +451,22 @@ class MemoryModel (object):
         damage_flag = self.damage_var.get()
         damage_mode = int(self.damage_mode_var.get())
         damage_count = int(self.damage_count_var.get())
-
-        r =  self.find_path_special(self.NUM_DIRECTIONS,damage_flag,damage_mode,damage_count)
+        use_new_weight_calc = bool(self.use_new_weight_calc_var.get())
+        r =  self.find_path_special(self.NUM_DIRECTIONS,damage_flag,damage_mode,damage_count,use_new_weight_calc)
         return r
 
-    def find_path_special(self,num_directions,damage_flag,damage_mode,damage_count):
+    def find_path_special(self,num_directions,damage_flag,damage_mode,damage_count,use_new_weight_calc):
         self.running_function = "SPECIAL"
         self.initialize_find_path("SPECIAL",damage_flag,damage_mode,damage_count)
-        r = self.find_path("SPECIAL",num_directions, True, False,damage_flag,damage_mode,damage_count)
+        r = self.find_path("SPECIAL",num_directions, True, False,damage_flag,damage_mode,damage_count,use_new_weight_calc)
         self.finalize_find_path()
         return r
 
-    def find_path(self,find_path_mode,num_directions,special,omnicient,damage_flag,damage_mode,damage_count):
+    def find_path(self,find_path_mode,num_directions,special,omnicient,damage_flag,damage_mode,damage_count,use_new_weight_calc):
         self.update_status("Restoring from snapshot...")
         self.my_maze.restore_from_snapshot()
         self.update_status("Restoring from snapshot completed")
-        return self.path(find_path_mode,self.rat,num_directions,special,omnicient,damage_flag,damage_mode,damage_count,self.damageble_cells_cumulative)
+        return self.path(find_path_mode,self.rat,num_directions,special,omnicient,damage_flag,damage_mode,damage_count,self.damageble_cells_cumulative,use_new_weight_calc)
 
     def load_maze(self):
         file_path = filedialog.askopenfilename()
@@ -652,8 +656,6 @@ class MemoryModel (object):
         last_y = None
         last_safe_cell = None
         force_to_move_back = False
-        print("BEFORE STARTING LEARNING")
-        self.print_board()
         while q < config.num_learning_steps:
             # if we have identfied a trap. The best way is to go back
             # to the previous position in last cell and try again
@@ -811,7 +813,7 @@ class MemoryModel (object):
         str = f"{str} , damaged:{self.my_maze.get_damaged_cell_count():>8}]"
         return str
 
-    def path(self,find_path_mode,rat,num_directions,special,omnicient,damage_flag,damage_mode,damage_count,damageble_cells):
+    def path(self,find_path_mode,rat,num_directions,special,omnicient,damage_flag,damage_mode,damage_count,damageble_cells,use_new_weight_calc):
         reward_row = 10
         reward_col = 10
         if special and omnicient: # initilize
@@ -838,7 +840,10 @@ class MemoryModel (object):
                 self.update_status(f"Calculating weights completed")
             else:
                 self.update_status(f"Calculating weights ...")
-                self.my_maze.create_weights_learned(rat, reward_row, reward_col)
+                if use_new_weight_calc:
+                    self.my_maze.create_weights_learned_new(rat, reward_row, reward_col)
+                else:
+                    self.my_maze.create_weights_learned(rat, reward_row, reward_col)
                 self.update_status(f"Calculating weights completed")
         else:
             reward_x = rat.get_x()
@@ -876,10 +881,13 @@ class MemoryModel (object):
         cont_count = 0
         count_trap_count=0
         last_increased_sigma2=None
+        trap_details = None
         counter = 0
         # use trap finder look for last 50 moves and if the move found 10% match tag it as a trap
         my_trap_finder = trap_finder.TrapFinder(history_length=50,tolerence_percentage=10)
         loop_count = 0
+        pop_count = 0 # used to adjust max weight strategy
+
         while not math.pow(math.pow(reward_x-rat.get_x(),2)+math.pow(reward_y-rat.get_y(),2),1/2) < 10:
             if self.stop_path_flag:
                 break # asked to stop
@@ -917,14 +925,17 @@ class MemoryModel (object):
                     rat.set_v_y(v_y)
 
             if  weights_map:
-                if cont_count >= 100:
-                    weights_map.pop(max(weights_map))
+                if trap_details and trap_details[0]:
+                    # trapped last time so lets remove one
+                    for ti in range(pop_count):
+                        weights_map.pop(max(weights_map))
                     if weights_map:
                         b_max = weights_map[max(weights_map)]
                     else:
-                        return False
+                        print("#### TRAPPED BUT NO WHERE ELSE TO GO ###")
                 else:
                     b_max = weights_map[max(weights_map)]
+
                 new_row = b_max[1] // 20
                 new_col = b_max[0] // 20
                 prev_row = rat.get_y() // 20
@@ -935,27 +946,12 @@ class MemoryModel (object):
                     config.dl(f"TRAPPED IN THE SAME CELL {new_row} {new_col}")
                 else:
                     cont_count =0
-
-                if my_trap_finder.register_visited(new_row,new_col):
-                    print(f"INCREASING SIGMA {loop_count} {config.SIGMA2}")
-                    config.incr_sigma2()
-                    trap_count += 1
-                    count_trap_count +=1
-                    last_increased_sigma2 = loop_count
+                trap_details = my_trap_finder.register_visited(b_max[0], b_max[1])
+                if trap_details[0]:
+                    pop_count+=1
                 else:
-                    count_trap_count = 0
-                # see if we increaed sigma and it is for a while, then decrease it
-                if last_increased_sigma2 and (loop_count-last_increased_sigma2)>20:
-                    config.decr_sigma2() # decrease
-                    print(f"DECREASING SIGMA {loop_count} {config.SIGMA2}")
-                    last_increased_sigma2=None
-                #if cont_count >= 10:
-                #    trap_count +=1
-                #    trap_count_delta+=1
-                #    config.dl(f"TRAP COUNT INCR {trap_count}")
-                #if trap_count_delta>20:
-                #    config.set_sigma2(config.SIGMA2+10)
-                #    trap_count_delta=0
+                    pop_count=0
+
                 if trap_count > 2000:
                     return False
                 rat.move(b_max[0], b_max[1])
