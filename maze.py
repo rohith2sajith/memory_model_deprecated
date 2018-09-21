@@ -38,6 +38,9 @@ class Maze(object):
 
     def __init__(self,memboard):
         self.matrix = np.identity(config.NUMBER_OF_CELLS_SQR)
+        #self.matrix = []
+        #for i in range(config.NUMBER_OF_CELLS_SQR):
+        #    self.matrix.append([1]*config.NUMBER_OF_CELLS_SQR)
         self.w = []
         self.T = []
         for d in range(config.NUMBER_OF_CELLS_SQR):
@@ -179,18 +182,48 @@ class Maze(object):
             else:
                 self.matrix[first_index][c] = self.matrix[first_index][c] + config.ALPHA * (0 + config.GAMMA * self.matrix[second_index][c] - self.matrix[first_index][c])
 
-    def update_matrix(self,x_f,y_f,rat):
+    def update_matrix_sept19(self,x_f,y_f,rat):
         first_index = int(rat.get_y() // 20 * config.NUMBER_OF_CELLS + rat.get_x() // 20)
         second_index = int(y_f // 20 * config.NUMBER_OF_CELLS + x_f // 20)
 
         if first_index == second_index:
-            if self.matrix[first_index][first_index] == 1: # first time
-                self.matrix[first_index][first_index] = self.matrix[first_index][first_index] + config.ALPHA * (1 + config.GAMMA * self.matrix[second_index][first_index] - self.matrix[first_index][first_index])
-            else:
-                return # no action
-        for c in range(config.NUMBER_OF_CELLS_SQR):
-            if c != first_index:
-                self.matrix[first_index][c] = self.matrix[first_index][c] + config.ALPHA * (0 + config.GAMMA * self.matrix[second_index][c] - self.matrix[first_index][c])
+            for b in range(config.NUMBER_OF_CELLS_SQR):
+                if b != first_index:
+                    self.matrix[first_index][b]  = self.matrix[first_index][b] + config.ALPHA * (0 + config.GAMMA * self.matrix[first_index][b] - self.matrix[first_index][b])
+                else:
+                    self.matrix[first_index][first_index] = self.matrix[first_index][first_index] + config.ALPHA * (1 + config.GAMMA * self.matrix[first_index][first_index] - self.matrix[first_index][first_index])
+        else:
+
+            for c in range(config.NUMBER_OF_CELLS_SQR):
+                if c != first_index:
+                    self.matrix[first_index][c] = self.matrix[first_index][c] + config.ALPHA * (0 + config.GAMMA * self.matrix[second_index][c] - self.matrix[first_index][c])
+                else:
+                    self.matrix[first_index][first_index] = self.matrix[first_index][first_index] + config.ALPHA * (1 + config.GAMMA * self.matrix[second_index][first_index] - self.matrix[first_index][first_index])
+
+    def update_matrix(self,x_f,y_f,rat):
+        first_index = int(rat.get_y() // 20 * config.NUMBER_OF_CELLS + rat.get_x() // 20)
+        second_index = int(y_f // 20 * config.NUMBER_OF_CELLS + x_f // 20)
+        old_matrix = self.matrix[:]
+        for b in range(config.NUMBER_OF_CELLS_SQR):
+            one_s = 0
+            if b == first_index:
+                one_s = 1
+            self.matrix[first_index][b] = old_matrix[first_index][b] +  config.ALPHA * (one_s + config.GAMMA * old_matrix[second_index][b]-old_matrix[first_index][b])
+
+    def update_w(self,x_f,y_f,rat):
+        s = int(rat.get_y() // 20 * config.NUMBER_OF_CELLS + rat.get_x() // 20)
+        s_prime = int(y_f // 20 * config.NUMBER_OF_CELLS + x_f // 20)
+        feature_rep_s = self.matrix[s]
+        tsum=0
+
+        for i in range(config.NUMBER_OF_CELLS_SQR):
+            tsum += feature_rep_s[i] * feature_rep_s[i]
+
+        norm_feature_rep_s = [i / tsum for i in feature_rep_s]
+        w_error = config.R_VALUE + config.W_GAMMA * (numpy.matmul(self.matrix[s_prime], self.w)) - (numpy.matmul(self.matrix[s], self.w))
+        old_w = self.w[:]
+        for i in range(config.NUMBER_OF_CELLS_SQR):
+            self.w[i] = old_w[i] + config.W_ALPHA * w_error* norm_feature_rep_s[i]
 
 
     def has_visited_once(self,row,col):
@@ -222,6 +255,24 @@ class Maze(object):
                 self.board[x][y].set_weight(wt)
 
     def create_weights_learned_new(self,mouse,reward_row,reward_col):
+        weights = []
+        for g in range (config.NUMBER_OF_CELLS_SQR):
+            sum = 0
+            for h in range (config.NUMBER_OF_CELLS_SQR):
+                sum += self.matrix[g][h]*self.w[h]
+            weights.append(sum)
+
+        not_travelled_weight = min(weights) -50
+
+        for x in range (config.NUMBER_OF_CELLS):
+            for y in range (config.NUMBER_OF_CELLS):
+                wt = weights[config.NUMBER_OF_CELLS*x+y]
+                #if self.board[x][y].travelled == -1: # if never visited use a lower value
+                #    wt = not_travelled_weight
+                self.board[x][y].set_weight(wt)
+
+
+    def create_weights_learned_new_not_good(self,mouse,reward_row,reward_col):
         reward_matrix = []
         for f in range (config.NUMBER_OF_CELLS_SQR):
             # create another based on how recent they visited
@@ -550,3 +601,5 @@ class Maze(object):
                 for col in range(0, config.NUMBER_OF_CELLS_SQR):
                     str = f"{str}{self.matrix[row][col]},"
                 mfile.write(f"{str}\n")
+
+

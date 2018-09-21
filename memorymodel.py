@@ -183,7 +183,7 @@ class MemoryModel (object):
         self.gamma_var.set(config.GAMMA)
         self.alpha_var.set(config.ALPHA)
         self.grid_size_var.set(config.NUMBER_OF_CELLS)
-        self.use_new_weight_calc_var.set(1)
+        self.use_new_weight_calc_var.set(0)
 
         ## TOP CONTROL BUTTON FRAME
         self.top_frame = tkinter.Frame(self.root)
@@ -743,6 +743,7 @@ class MemoryModel (object):
                 last_mouse_cords = (rat.get_x(),rat.get_y())
 
                 self.my_maze.update_matrix(x_f,y_f,rat)
+                self.my_maze.update_w(x_f,y_f,rat)
                 rat.move(x_f,y_f)
                 q +=1
                 self.my_maze.register_travelled_cell(row,col)
@@ -790,14 +791,15 @@ class MemoryModel (object):
         self.update_status(f"Learning Length: {rat.get_distance():>15.2f}")
         self.reward_end = [rat.get_x(), rat.get_y()]
         print("Adjusting matrics for not visited")
-        for m in range (config.NUMBER_OF_CELLS_SQR):
-            r = m//config.NUMBER_OF_CELLS
-            c = m%config.NUMBER_OF_CELLS
+        if 2==1:
+            for m in range (config.NUMBER_OF_CELLS_SQR):
+                r = m//config.NUMBER_OF_CELLS
+                c = m%config.NUMBER_OF_CELLS
 
-            if self.board()[r][c].travelled == -1: # not travelled
-                for n in range (config.NUMBER_OF_CELLS_SQR):
-                    self.my_maze.matrix[n][m] = 0
-                    self.my_maze.matrix[m][n] = 0
+                if self.board()[r][c].travelled == -1: # not travelled
+                    for n in range (config.NUMBER_OF_CELLS_SQR):
+                        self.my_maze.matrix[n][m] = 0
+                        self.my_maze.matrix[m][n] = 0
 
     def not_used_isOnLastCell(self,x_f,y_f):
         # check to see the points are on last cell
@@ -884,7 +886,7 @@ class MemoryModel (object):
         trap_details = None
         counter = 0
         # use trap finder look for last 50 moves and if the move found 10% match tag it as a trap
-        my_trap_finder = trap_finder.TrapFinder(history_length=50,tolerence_percentage=10)
+        my_trap_finder = trap_finder.TrapFinder(history_length=50,tolerence_percentage=20)
         loop_count = 0
         pop_count = 0 # used to adjust max weight strategy
 
@@ -927,8 +929,10 @@ class MemoryModel (object):
             if  weights_map:
                 if trap_details and trap_details[0]:
                     # trapped last time so lets remove one
+                    print(f"Untrapping {pop_count}")
                     for ti in range(pop_count):
-                        weights_map.pop(max(weights_map))
+                        if len(weights_map):
+                            weights_map.pop(max(weights_map))
                     if weights_map:
                         b_max = weights_map[max(weights_map)]
                     else:
