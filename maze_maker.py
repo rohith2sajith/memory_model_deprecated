@@ -64,7 +64,7 @@ class MazeBuilder:
         #left.grid(row=2,column=0)
         #self.canvas.grid(row=2, column=1)
         #right.grid(row=2, column=2)
-        #self.canvas.bind("<Button-1>", self.on_clicked)
+        self.canvas.bind("<Button-1>", self.on_clicked)
 
         for i in range(config.NUMBER_OF_CELLS):
             for j in range(config.NUMBER_OF_CELLS):

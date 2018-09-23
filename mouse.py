@@ -74,6 +74,12 @@ class Mouse(object):
                 y_f = y + config.MAX_Y
         return [x_f,y_f]
 
+    def get_row(self):
+        return self.get_y()//config.CELL_WIDTH
+
+    def get_col(self):
+        return self.get_x()//config.CELL_WIDTH
+
 
     def off_grid(self,x_f,y_f):
         if x_f < 0:

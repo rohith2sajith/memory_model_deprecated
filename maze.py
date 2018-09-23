@@ -38,9 +38,6 @@ class Maze(object):
 
     def __init__(self,memboard):
         self.matrix = np.identity(config.NUMBER_OF_CELLS_SQR)
-        #self.matrix = []
-        #for i in range(config.NUMBER_OF_CELLS_SQR):
-        #    self.matrix.append([1]*config.NUMBER_OF_CELLS_SQR)
         self.w = []
         self.T = []
         for d in range(config.NUMBER_OF_CELLS_SQR):
@@ -235,9 +232,9 @@ class Maze(object):
         reward_matrix = []
         for f in range (config.NUMBER_OF_CELLS_SQR):
             if f == reward_row*config.NUMBER_OF_CELLS+reward_col:
-                reward_matrix.append(1)
+                reward_matrix.append(100)
             else:
-                reward_matrix.append(-1)
+                reward_matrix.append(1)
         weights = []
         for g in range (config.NUMBER_OF_CELLS_SQR):
             sum = 0
@@ -245,13 +242,13 @@ class Maze(object):
                 sum += self.matrix[g][h]*reward_matrix[h]
             weights.append(sum)
 
-        not_travelled_weight = min(weights) -50
+        not_travelled_weight = min(weights) -1
 
         for x in range (config.NUMBER_OF_CELLS):
             for y in range (config.NUMBER_OF_CELLS):
                 wt = weights[config.NUMBER_OF_CELLS*x+y]
-                if self.board[x][y].travelled == -1: # if never visited use a lower value
-                    wt = not_travelled_weight
+                #if self.board[x][y].travelled == -1: # if never visited use a lower value
+                #    wt = not_travelled_weight
                 self.board[x][y].set_weight(wt)
 
     def create_weights_learned_new(self,mouse,reward_row,reward_col):

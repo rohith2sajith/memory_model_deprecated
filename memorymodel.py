@@ -5,6 +5,7 @@ import rundata
 import report
 import config as config
 import maze_maker
+import max_weight_picker
 import damager
 import tkinter
 import time
@@ -19,6 +20,7 @@ from tkinter import StringVar
 from tkinter import DoubleVar
 from datetime import datetime
 from operator import itemgetter
+
 import trap_finder
 
 class MemoryModel (object):
@@ -744,6 +746,7 @@ class MemoryModel (object):
 
                 self.my_maze.update_matrix(x_f,y_f,rat)
                 self.my_maze.update_w(x_f,y_f,rat)
+
                 rat.move(x_f,y_f)
                 q +=1
                 self.my_maze.register_travelled_cell(row,col)
@@ -779,11 +782,13 @@ class MemoryModel (object):
 
         # update for last time
         self.my_maze.update_weight(rat)
+
         count = 0
         for row in range (config.NUMBER_OF_CELLS):
             for col in range(config.NUMBER_OF_CELLS):
                 if self.board()[row][col].weight>0:
                     count = count + 1
+
         self.rundata.num_squares = count
         self.rundata.learning_length = rat.get_distance()
         self.rundata.displacements = displacements
@@ -797,9 +802,8 @@ class MemoryModel (object):
                 c = m%config.NUMBER_OF_CELLS
 
                 if self.board()[r][c].travelled == -1: # not travelled
-                    for n in range (config.NUMBER_OF_CELLS_SQR):
-                        self.my_maze.matrix[n][m] = 0
-                        self.my_maze.matrix[m][n] = 0
+                    self.my_maze.matrix[m][m] = 100
+
 
     def not_used_isOnLastCell(self,x_f,y_f):
         # check to see the points are on last cell
@@ -889,8 +893,10 @@ class MemoryModel (object):
         my_trap_finder = trap_finder.TrapFinder(history_length=50,tolerence_percentage=20)
         loop_count = 0
         pop_count = 0 # used to adjust max weight strategy
+        max_entry_picker = max_weight_picker.MaxWeightPicker()
 
-        while not math.pow(math.pow(reward_x-rat.get_x(),2)+math.pow(reward_y-rat.get_y(),2),1/2) < 10:
+        #while not math.pow(math.pow(reward_x-rat.get_x(),2)+math.pow(reward_y-rat.get_y(),2),1/2) < 10:
+        while not(reward_row == rat.get_row() and reward_col == rat.get_col()):
             if self.stop_path_flag:
                 break # asked to stop
             loop_count +=1
@@ -898,6 +904,8 @@ class MemoryModel (object):
 
             weights.clear()
             arr.clear()
+            # max entry picker
+            max_entry_picker.clear()
             for i in range (num_directions):
                 arr.append(float(np.random.random()*360))
             for j in range (num_directions):
@@ -909,16 +917,15 @@ class MemoryModel (object):
                 row = int(y_temp//config.CELL_WIDTH)
                 col = int(x_temp//config.CELL_WIDTH)
                 if row >= 0 and row <=(config.NUMBER_OF_CELLS-1) and col >=0 and col<=(config.NUMBER_OF_CELLS-1):
-                    w = self.board()[row][col].get_weight()
-                    tr = y_f//config.CELL_WIDTH
-                    tc = x_f//config.CELL_WIDTH
-                    w1 = self.board()[int(y_f//config.CELL_WIDTH)][int(x_f//config.CELL_WIDTH)].get_weight()
-                    if not self.board()[row][col].is_not_travellable and self.board()[row][col].get_weight() >= self.board()[int(y_f // config.CELL_WIDTH)][int(x_f // config.CELL_WIDTH)].get_weight():
+                    r = int(y_f // config.CELL_WIDTH)
+                    c = int(x_f // config.CELL_WIDTH)
+                    if not self.board()[row][col].is_not_travellable and self.board()[row][col].get_weight() >= self.board()[r][c].get_weight():
+                        # if the proposed cell's weight is greater thatn the one already in
                         if not self.is_intersect_wth_gray_cells_new(rat.get_x(),rat.get_y(),x_temp,y_temp):
+                            # and not intercepting with non travellable cells add to the weight map
                             weights.append([self.board()[row][col].get_weight(), x_temp,y_temp])
                             weights_map[self.board()[row][col].get_weight()] = [x_temp,y_temp]
-                        else:
-                            config.dl(f"AVOIDED POINT ({x_temp},{y_temp})")
+                            max_entry_picker.add(x_temp,y_temp,self.board()[row][col].get_weight())
                     else:
                         rat.set_v_x(v_x)
                         rat.set_v_y(v_y)
@@ -926,8 +933,8 @@ class MemoryModel (object):
                     rat.set_v_x(v_x)
                     rat.set_v_y(v_y)
 
-            if  weights_map:
-                if trap_details and trap_details[0]:
+            if weights_map:
+                if 2==1 and trap_details and trap_details[0]:
                     # trapped last time so lets remove one
                     print(f"Untrapping {pop_count}")
                     for ti in range(pop_count):
@@ -938,7 +945,10 @@ class MemoryModel (object):
                     else:
                         print("#### TRAPPED BUT NO WHERE ELSE TO GO ###")
                 else:
-                    b_max = weights_map[max(weights_map)]
+                    #b_max = weights_map[max(weights_map)]
+                    #print(f"->{max(weights_map)}")
+                    b_max,weight_to_move  = max_entry_picker.get_next_coords()
+                    print(f"->{weight_to_move}")
 
                 new_row = b_max[1] // 20
                 new_col = b_max[0] // 20
@@ -948,8 +958,10 @@ class MemoryModel (object):
                 if new_row == prev_row and new_col == prev_col:
                     cont_count +=1
                     config.dl(f"TRAPPED IN THE SAME CELL {new_row} {new_col}")
+                    #max_entry_picker.add_to_black_list(new_row,new_col)
                 else:
                     cont_count =0
+                    max_entry_picker.clear_black_list()
                 trap_details = my_trap_finder.register_visited(b_max[0], b_max[1])
                 if trap_details[0]:
                     pop_count+=1
@@ -959,6 +971,7 @@ class MemoryModel (object):
                 if trap_count > 2000:
                     return False
                 rat.move(b_max[0], b_max[1])
+            print(f"### {reward_row} == {rat.get_row()} {reward_col}=={rat.get_col()}")
         # update rundata
         self.rundata.num_directions = len(arr)
         self.rundata.num_traps = trap_count
