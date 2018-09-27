@@ -759,7 +759,7 @@ class MemoryModel (object):
                 # now check we are trapped or not
                 if continious_visit_count > 5:
                     continious_visit_count = 0  # reset count
-                    force_to_move_back = True  # ask to move back
+                    #force_to_move_back = True  # ask to move back
                     last_safe_cell = (int(last_y // config.CELL_WIDTH), int(last_x // config.CELL_WIDTH))
                 # trap section end
 

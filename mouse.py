@@ -85,11 +85,11 @@ class Mouse(object):
     def get_next_coor_directed(self,x,y,theta):
         x_f = self.get_next_coor2(x,y)[0]
         y_f = y + self.get_v_x()* np.tan(theta)
-        if abs(y_f-y) > config.MAX_Y:
-            if y > y_f:
-                y_f = y - config.MAX_Y
-            else:
-                y_f = y + config.MAX_Y
+        #if abs(y_f-y) > config.MAX_Y:
+         #   if y > y_f:
+          #      y_f = y - config.MAX_Y
+           # else:
+            #    y_f = y + config.MAX_Y
         return [x_f,y_f]
 
     def get_row(self):
