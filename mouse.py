@@ -54,9 +54,27 @@ class Mouse(object):
         self.set_v_x(new_v_x)
         return new_v_x
 
-    def get_next_coor(self,x,y):
+    def get_next_coor_sept_23(self,x,y):
         x_f = x+self.get_next_velocity_x()
         y_f = y+self.get_next_velocity_y()
+        return [x_f, y_f]
+
+    def get_next_coor(self,x,y,cell_to_ignore):
+        """
+        get next coords ignoring cells given
+        :param x:
+        :param y:
+        :param cell_to_ignore:
+        :return:
+        """
+        valid_coords = False
+        count = 0
+        while not valid_coords:
+            x_f = x+self.get_next_velocity_x()
+            y_f = y+self.get_next_velocity_y()
+            if not cell_to_ignore:
+                break
+            valid_coords = not ((y_f // config.CELL_WIDTH) == cell_to_ignore[0] and (x_f // config.CELL_WIDTH) == cell_to_ignore[1]) or count >20
         return [x_f, y_f]
 
     def get_next_coor2(self,x,y):
@@ -130,6 +148,26 @@ class Mouse(object):
         else:
             return [False,0]
     @staticmethod
+    def intersect_with_grid(x1,y1,x2,y2):
+        if x1 == x2 and y1 == y2:
+            return [False]
+        int_point_list = []
+        given_segment = [[x1,y1],[x2,y2]]
+        s1 = [[0,0],[0,config.BOARD_MAX]]
+        s2 = [[0,config.BOARD_MAX],[config.BOARD_MAX,config.BOARD_MAX]]
+        s3 = [[config.BOARD_MAX,config.BOARD_MAX],[config.BOARD_MAX,0]]
+        s4 = [[config.BOARD_MAX,0],[0,0]]
+        for s in [s1,s2,s3,s4]:
+            x,y = config.line_intersection(given_segment, s)
+            if x:
+                int_point_list.append([x,y])
+        if len(int_point_list):
+            ret_list = [True]
+            ret_list.append(int_point_list)
+            return ret_list
+        return [False]
+
+    @staticmethod
     def intersect2( a, b, c, d, lower_x, lower_y):
 
         # if not interseaction it will return [False]
@@ -164,15 +202,19 @@ class Mouse(object):
 
         x,y = config.line_intersection(given_segment, s2)
         if x != None:
-            int_point_list.append([x,y])
+            if [x,y] not in int_point_list:
+                int_point_list.append([x,y])
 
         x,y = config.line_intersection(given_segment, s3)
         if x != None:
-            int_point_list.append([x,y])
+            if [x, y] not in int_point_list:
+                int_point_list.append([x,y])
 
         x,y = config.line_intersection(given_segment, s4)
         if x != None:
-            int_point_list.append([x,y])
+            if [x,y] not in int_point_list:
+                int_point_list.append([x,y])
+
         if len(int_point_list):
             ret_list = [True]
             ret_list.append(int_point_list)
@@ -239,5 +281,7 @@ class Mouse(object):
 
     def __str__(self):
         return f"x={self.x},y={self.y}"
+
+
 
 

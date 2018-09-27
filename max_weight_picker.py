@@ -60,17 +60,20 @@ class MaxWeightPicker(object):
             weight_moving_to = max_weight
             entries = self.weights_map[max_weight]
             # remove black listed entries
-            entries_copy = entries[:]
-            for e in entries_copy:
-                if (e.row,e.col) in self.black_list:
-                    entries.remove(e)
-            # now we have entries removed
+            if len(self.black_list):
+                entries_copy = entries[:]
+                for e in entries_copy:
+                    if (e.row,e.col) in self.black_list:
+                        entries.remove(e)
+                # now we have entries removed
             if not len(entries):
                 # no more entries in this. So removed
                 self.weights_map.pop(max_weight)
             else:
                 lucky_entry = random.randint(0,len(entries)-1)
                 coords = [entries[lucky_entry].x,entries[lucky_entry].y]
+        if not coords:
+            print("SOME THING WRONG")
         return (coords,weight_moving_to)
 def main():
     m = MaxWeightPicker()

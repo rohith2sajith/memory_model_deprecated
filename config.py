@@ -1,4 +1,5 @@
 import random
+import math
 from sympy.geometry import *
 from datetime import datetime
 
@@ -6,7 +7,7 @@ CELL_WIDTH = 20  # square width
 DEFAULT_WEIGHT = 0.1  # default weight
 WALKABLE_CELL_COLOR = "white"
 BLOCKED_CELL_COLOR = "gray"
-NUMBER_OF_CELLS = 6 # 30
+NUMBER_OF_CELLS = 10 # 30
 NUMBER_OF_CELLS_SQR = NUMBER_OF_CELLS*NUMBER_OF_CELLS
 BOARD_MAX=NUMBER_OF_CELLS*CELL_WIDTH
 MOUSE_RADIUS = 8
@@ -23,6 +24,7 @@ DAMAGE_MODE_SPREAD_CELL=1
 MAZE_LIST=["default","maze1","maze2","maze3","maze4"]
 SIGMA2_INC=0.1
 SIGMA1_INC=0.1
+ROUND_TO_DIGITS=6
 
 ALPHA = 0.9
 SIGMA1 = 10
@@ -96,11 +98,13 @@ def il(msg):
         return
     print(msg)
 
-def is_in_range(x,y,line):
-    x1 = line[0][0]
-    y1 = line[0][1]
-    x2 = line[1][0]
-    y2 = line[1][1]
+def is_in_range(xx,yy,line):
+    x1 = round(line[0][0],ROUND_TO_DIGITS)
+    y1 = round(line[0][1],ROUND_TO_DIGITS)
+    x2 = round(line[1][0],ROUND_TO_DIGITS)
+    y2 = round(line[1][1],ROUND_TO_DIGITS)
+    x =round(xx,ROUND_TO_DIGITS) #round(x)
+    y =round(yy,ROUND_TO_DIGITS)
     if x1 != x and x2 != x:
         if min(x1,x2,x) == x or max(x1,x2,x) == x:
             return False
@@ -152,6 +156,7 @@ def line_intersection(line1, line2):
     # find slope of fist line
     m1, b1 = equation_of_line(line1)
     m2, b2 = equation_of_line(line2)
+
     if m1 != None and m2 != None:
         # None of the lines are parallel to y-axis
         if m1 != m2:

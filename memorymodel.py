@@ -6,6 +6,7 @@ import report
 import config as config
 import maze_maker
 import max_weight_picker
+import utils
 import damager
 import tkinter
 import time
@@ -598,7 +599,6 @@ class MemoryModel (object):
                     lower_y = config.CELL_WIDTH * row
                     arr = mouse.Mouse.intersect2(x1, y1, new_x, new_y, lower_x, lower_y)
                     if arr[0]:
-                        config.dl(f"AVOIDING ({new_x},{new_y})")
                         return True
         return False
 
@@ -623,16 +623,8 @@ class MemoryModel (object):
                     prev_row = row
                     prev_col = col
                     my_paths = f"{my_paths}, ({row},{col}) "
-                    print(f"CELL {row},{col}")
                     if board[row][col].is_not_travellable:  # gray cell
-                        #print(f"AVOIDING {row},{col}")
                         return True
-                        #lower_x = config.CELL_WIDTH * col
-                        #lower_y = config.CELL_WIDTH * row
-                        #arr = rat.intersect2(rat.get_x(), rat.get_y(), new_x, new_y, lower_x, lower_y)
-                        #if arr[0]:
-                            #print(f"AVOIDING JUMP ({row},{col})")
-                        #    return True
             d +=delta
         s_row = y1//config.CELL_WIDTH
         s_col = x1//config.CELL_WIDTH
@@ -643,9 +635,7 @@ class MemoryModel (object):
 
     def move_mouse(self,rat):
         self.reset_mouse(rat)
-
         self.reward_start = [rat.get_x(),rat.get_y()]
-
         displacements = []
         time = 0
         q = 0
@@ -656,82 +646,69 @@ class MemoryModel (object):
         continious_visit_count=0
         last_x = None
         last_y = None
-        last_safe_cell = None
         force_to_move_back = False
+        visited_tacker = utils.VisitedStack(20)
+
         while q < config.num_learning_steps:
             # if we have identfied a trap. The best way is to go back
             # to the previous position in last cell and try again
             # high chance of move out of the trap
+            cell_to_ignore = None
             if force_to_move_back:
-                coords = [last_x,last_y]
-            else:
-                coords = rat.get_next_coor(rat.get_x(), rat.get_y())
-            force_to_move_back = False
+                cell_to_ignore = [last_visited_row,last_visited_row]
+
+            coords = rat.get_next_coor(rat.get_x(), rat.get_y(),cell_to_ignore)
 
             x_f = coords[0]
             y_f = coords[1]
             if x_f<0 or x_f >=config.BOARD_MAX or y_f<0 or y_f >=config.BOARD_MAX:
                 continue
+
+
             row = rat.get_y() // config.CELL_WIDTH
             col = rat.get_x()//config.CELL_WIDTH
             # checking to see we have intercepted in non travellable cells
+            distance_map = {}
 
-            for  i in range (-1,2,1):
-                for j in range (-1,2,1):
+            search_diameter = 2 # neighbourhood search diameter
+            for i in range (-1*search_diameter,search_diameter+1,1):
+                for j in range (-1*search_diameter,search_diameter+1,1):
                     if row+i >=0 and row+i <=config.NUMBER_OF_CELLS-1 and col+j>=0 and col+j <=config.NUMBER_OF_CELLS-1:
                         if self.board()[int(row+i)][int(col+j)].is_not_travellable:
                             int_arr = rat.intersect2(rat.get_x(), rat.get_y(), x_f, y_f, config.CELL_WIDTH * (col+j), config.CELL_WIDTH *(row+ i))
                             if int_arr[0]:
                                 arr = int_arr[1] # array of array of intersection points
-                                if len(arr) == 1:
-                                    x_f = arr[0][0]
-                                    y_f = arr[0][1]
-                                elif len(arr) == 2:
-                                    distance1 = math.sqrt(math.pow(rat.get_x()-arr[0][0],2)+math.pow(rat.get_y()-arr[0][1],2))
-                                    distance2 = math.sqrt(math.pow(rat.get_x()-arr[1][0],2)+math.pow(rat.get_y()-arr[1][1],2))
-                                    if distance1 > distance2:
-                                        x_f = arr[1][0]
-                                        y_f = arr[1][1]
-                                    else:
-                                        x_f = arr[0][0]
-                                        y_f = arr[0][1]
-                                else:
-                                    print(f"#####MORE INTERSECTIONS THAN EXPECTED..... {len(arr)}")
+                                for cs in arr:
+                                    dist = math.sqrt(math.pow(rat.get_x() - cs[0], 2) + math.pow(rat.get_y() - cs[1], 2))
+                                    distance_map[dist] = (cs[0], cs[1])
 
-                                self.reset_velocity(rat)
-                    vals = rat.off_grid(x_f, y_f)  # of the grid
-                    if vals[0]:
-                        p1 = Point2D(rat.get_x(), rat.get_y())
-                        p2 = Point2D(x_f, y_f)
-                        line = Segment2D(p1, p2)
-                        if vals[1] == 0:
-                            int_point = config.line_intersection(line,Line2D((0,0),(0,2)))
-                            if int_point and len(int_point):
-                                x_f = float(int_point[0].x)
-                                y_f = float(int_point[0].y)
-                            self.reset_velocity(rat)
-                        elif vals[1] == 1:
-                            int_point = config.line_intersection(line, Line2D((config.BOARD_MAX, 0), (config.BOARD_MAX, 2)))
-                            if int_point and len(int_point):
-                                x_f = float(int_point[0].x)
-                                y_f = float(int_point[0].y)
-                            self.reset_velocity(rat)
-                        elif vals[1] == 2:
-                            int_point = config.line_intersection(line, Line2D((0, 0), (2, 0)))
-                            if int_point and len(int_point):
-                                x_f = float(int_point[0].x)
-                                y_f = float(int_point[0].y)
-                            self.reset_velocity(rat)
-                        elif vals[1] == 3:
-                            int_point = config.line_intersection(line, Line2D((0, config.BOARD_MAX), (2, config.BOARD_MAX)))
-                            if int_point and len(int_point):
-                                x_f = float(int_point[0].x)
-                                y_f = float(int_point[0].y)
-                            self.reset_velocity(rat)
+            if len(distance_map):
+                right_one = distance_map[min(distance_map)]
+                # if there is only one intersection and it is the same as the mouse current locaitons then igre
+                if len(distance_map) !=1 or min(distance_map) != 0:
+                    x_f = right_one[0]
+                    y_f = right_one[1]
+                    self.reset_velocity(rat)
+
+            int_arr = rat.intersect_with_grid(rat.get_x(), rat.get_y(),x_f, y_f)
+            if int_arr[0]:
+                arr = int_arr[1]  # array of array of intersection points
+                if len(arr) == 1:
+                    x_f = arr[0][0]
+                    y_f = arr[0][1]
+                    self.reset_velocity(rat)
 
             row = int(y_f // config.CELL_WIDTH)
             col = int(x_f // config.CELL_WIDTH)
-
+            # Trap unlocking logic
+            # sometimes even after asking to ignore the cell for a coordinate
+            # when the gray cell intercept is calculated you might end up
+            # in the same cell. If the that is the case just send it back
+            if force_to_move_back:
+                # we are in untrapping mode
+                if last_visited_row == row and last_visited_col == col:
+                    continue
+            force_to_move_back = False
             if rat.get_t()%10 == 0:
                 self.my_maze.update_weight(rat)
                 zero_distance = sqrt(math.pow(rat.get_x()-0,2)+math.pow(rat.get_y()-(config.BOARD_MAX-1),2))
@@ -739,13 +716,18 @@ class MemoryModel (object):
 
             row = int((y_f)// config.CELL_WIDTH)
             col = int((x_f) // config.CELL_WIDTH)
+            # save the mouse coors
+            last_mouse_cords = (rat.get_x(), rat.get_y())
 
             if not self.board()[row][col].is_not_travellable:
-                # before move save last mose cords
-                last_mouse_cords = (rat.get_x(),rat.get_y())
 
                 self.my_maze.update_matrix(x_f,y_f,rat)
                 self.my_maze.update_w(x_f,y_f,rat)
+                # debug
+                intersected = 0
+                #if debug_number_of_gray_cells_intercted:
+                #    intersected=1
+                #self.debug_record_move(rat.get_x(),rat.get_y(),x_f,y_f,intersected)
 
                 rat.move(x_f,y_f)
                 q +=1
@@ -758,25 +740,28 @@ class MemoryModel (object):
                         self.board()[row][col].storage[a][b] = self.board()[a][b].get_weight()
 
                 rat.set_t(rat.get_t()+1)
-                # Trap adjustments
+                time = time + 1
+
+                # trap tracking -begin
                 if last_visited_row == row and last_visited_col == col:
-                    continious_visit_count +=1
+                    # increment count.  Same cell
+                    continious_visit_count += 1
                 else:
-                    continious_visit_count = 0
+                    # at a different cell
+                    continious_visit_count = 0  # reset continuous count
+                    # set the last locations
                     last_x = last_mouse_cords[0]
                     last_y = last_mouse_cords[1]
-                    last_safe_cell = (int(last_y // config.CELL_WIDTH), int(last_x // config.CELL_WIDTH))
-                    current_cell = (row,col)
-
+                    visited_tacker.push((last_x,last_y))
+                    #print(f"Updating last {last_y//config.CELL_WIDTH}, {last_x//config.CELL_WIDTH}")
                 last_visited_row = row
                 last_visited_col = col
-                if (continious_visit_count>10): # trapped
-                    continious_visit_count = 0
-                    force_to_move_back=True
+                # now check we are trapped or not
+                if continious_visit_count > 5:
+                    continious_visit_count = 0  # reset count
+                    force_to_move_back = True  # ask to move back
                     last_safe_cell = (int(last_y // config.CELL_WIDTH), int(last_x // config.CELL_WIDTH))
-                time = time + 1
-            else:
-                print("*",end='')
+                # trap section end
 
             self.update_status(f"Learning:{q:>8}")
 
@@ -803,7 +788,6 @@ class MemoryModel (object):
 
                 if self.board()[r][c].travelled == -1: # not travelled
                     self.my_maze.matrix[m][m] = 100
-
 
     def not_used_isOnLastCell(self,x_f,y_f):
         # check to see the points are on last cell
@@ -948,30 +932,28 @@ class MemoryModel (object):
                     #b_max = weights_map[max(weights_map)]
                     #print(f"->{max(weights_map)}")
                     b_max,weight_to_move  = max_entry_picker.get_next_coords()
-                    print(f"->{weight_to_move}")
+                if b_max:
+                    new_row = b_max[1] // 20
+                    new_col = b_max[0] // 20
+                    prev_row = rat.get_y() // 20
+                    prev_col = rat.get_x() // 20
+                    # find trap in a new way
+                    if new_row == prev_row and new_col == prev_col:
+                        cont_count +=1
+                        config.dl(f"TRAPPED IN THE SAME CELL {new_row} {new_col}")
+                        max_entry_picker.add_to_black_list(new_row,new_col)
+                    else:
+                        cont_count =0
+                        max_entry_picker.clear_black_list()
+                    trap_details = my_trap_finder.register_visited(b_max[0], b_max[1])
+                    if trap_details[0]:
+                        pop_count+=1
+                    else:
+                        pop_count=0
 
-                new_row = b_max[1] // 20
-                new_col = b_max[0] // 20
-                prev_row = rat.get_y() // 20
-                prev_col = rat.get_x() // 20
-                # find trap in a new way
-                if new_row == prev_row and new_col == prev_col:
-                    cont_count +=1
-                    config.dl(f"TRAPPED IN THE SAME CELL {new_row} {new_col}")
-                    #max_entry_picker.add_to_black_list(new_row,new_col)
-                else:
-                    cont_count =0
-                    max_entry_picker.clear_black_list()
-                trap_details = my_trap_finder.register_visited(b_max[0], b_max[1])
-                if trap_details[0]:
-                    pop_count+=1
-                else:
-                    pop_count=0
-
-                if trap_count > 2000:
-                    return False
-                rat.move(b_max[0], b_max[1])
-            print(f"### {reward_row} == {rat.get_row()} {reward_col}=={rat.get_col()}")
+                    if trap_count > 2000:
+                        return False
+                    rat.move(b_max[0], b_max[1])
         # update rundata
         self.rundata.num_directions = len(arr)
         self.rundata.num_traps = trap_count
@@ -1003,9 +985,53 @@ class MemoryModel (object):
                 config.i(self.board()[i][j])
             config.il("")
 
+    def debug_record_move(self,x1,y1,x2,y2,intersected):
+        with open("move.csv", 'a+') as move_file:
+            move_file.write(f"{x1},{y1},{x2},{y2},{intersected}\n")
+            self.debug_check_moves_for_a_move(x1, y1, x2, y2,intersected)
+
+    def debug_check_moves(self):
+        rat = mouse.Mouse(0,0,0,0,0,None)
+        print("Analyzing Mouse movments")
+        with open("move.csv", 'r') as move_file:
+            for line in move_file:
+                line = line.strip("\n")
+                parts = line.split(",")
+                x1 = float(parts[0])
+                y1 = float(parts[1])
+                x2 = float(parts[2])
+                y2 = float(parts[3])
+                intersection_count = int(parts[4])
+                self.debug_check_moves_for_a_move(x1,y1,x2,y2,intersection_count)
+
+    def debug_check_moves_for_a_move(self,x1,y1,x2,y2,intersected):
+        rat = mouse.Mouse(0,0,0,0,0,None)
+        row = y1//config.CELL_WIDTH
+        col = x1//config.CELL_WIDTH
+        diameter = 5
+        expected_intersection=0
+        if intersected:
+            expected_intersection=1
+        for i in range(-1*diameter, diameter+1, 1):
+            for j in range(-1*diameter, diameter+1, 1):
+                if row + i >= 0 and row + i <= config.NUMBER_OF_CELLS - 1 and col + j >= 0 and col + j <= config.NUMBER_OF_CELLS - 1:
+                    if self.board()[int(row + i)][int(col + j)].is_not_travellable:
+                        int_arr = rat.intersect2(x1, y1, x2, y2, config.CELL_WIDTH * (col + j), config.CELL_WIDTH * (row + i))
+                        if int_arr[0] and len(int_arr[1])>expected_intersection:
+                            print(f"##################({x1},{y1})- ({x2},{y2})) - {int_arr}")
+
+    def debug_analize_point_of_intersection(self):
+        rat = mouse.Mouse(0, 0, 0, 0, 0, None)
+        p1 = ((138.5719285314413,100.0),(150.81217614351237,92.25987945639311))
+        x1 = p1[0][0]
+        y1 = p1[0][1]
+        x2 = p1[1][0]
+        y2 = p1[1][1]
+        self.debug_check_moves_for_a_move(x1,y1,x2,y2,True)
 
 def main():
     memmap = MemoryModel()
+
     memmap.init_board()
     memmap.draw_board()
     #print(memmap.is_intersect_wth_gray_cells_new(98.04573113608151,462.197068030155,70.80499047146857,433.13521234090973))
