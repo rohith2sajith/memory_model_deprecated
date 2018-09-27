@@ -1,5 +1,6 @@
 import config
 import random
+import copy
 
 class MapEntry(object):
     def __init__(self,x,y,row,col,weight):
@@ -38,6 +39,13 @@ class MaxWeightPicker(object):
         # append
         entries.append(entry)
 
+    def get_default(self):
+        weight_moving_to = max(self.weights_map)
+        entries = self.weights_map[weight_moving_to]
+        lucky_entry = random.randint(0, len(entries) - 1)
+        coords = [entries[lucky_entry].x, entries[lucky_entry].y]
+        return (coords, weight_moving_to)
+
     def get_next_coords(self):
         """
         Using max weight strategy get the next coordinates
@@ -48,8 +56,11 @@ class MaxWeightPicker(object):
            that call. If it turn out to be all cells in max weight is black listed pick the next max one
         :return:
         """
+
         coords = None
         weight_moving_to =None
+        max_coords, max_weight_moving_to = self.get_default()
+
         #print(f"Black listed {self.black_list}")
         #for k,v in self.weights_map.items():
         #    print(f"\n{k} -",end='')
@@ -73,7 +84,7 @@ class MaxWeightPicker(object):
                 lucky_entry = random.randint(0,len(entries)-1)
                 coords = [entries[lucky_entry].x,entries[lucky_entry].y]
         if not coords:
-            print("SOME THING WRONG")
+            return (max_coords, max_weight_moving_to)
         return (coords,weight_moving_to)
 def main():
     m = MaxWeightPicker()

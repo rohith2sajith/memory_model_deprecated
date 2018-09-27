@@ -2234,3 +2234,16 @@ SPECIAL     ,NO DAMAGING ,   35877.905,          86,        3000,0           ,  
 SPECIAL     ,NO DAMAGING ,   35877.905,          86,        3000,0           ,     210.663,           0,           0
 SPECIAL     ,NO DAMAGING ,   35877.905,          86,        3000,0           ,     189.342,           0,           0
 SPECIAL     ,NO DAMAGING ,   35877.905,          86,        3000,0           ,     209.995,           0,           0
+------- 2018-09-27 06:38:25.983737 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+SPECIAL     ,NO DAMAGING ,   11986.768,          86,        1000,0           ,     187.428,           0,           0
+------- 2018-09-27 07:12:31.906713 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+------- 2018-09-27 09:11:32.300984 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+------- 2018-09-27 09:12:17.809847 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+SPECIAL     ,NO DAMAGING ,  254857.616,         659,       20000,0           ,     206.733,           0,           0
+------- 2018-09-27 09:27:52.222778 -------
+fph_mode    ,damage_mode ,lng_length  ,lng_num_sqrs,lng_time    ,fph_aborted ,fph_sr_lnth ,fph_num_trps,fph_num_dmgd
+SPECIAL     ,NO DAMAGING ,   12541.401,          85,        1000,0           ,      88.628,           0,           0
