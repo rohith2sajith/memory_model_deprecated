@@ -21,8 +21,22 @@ from tkinter import StringVar
 from tkinter import DoubleVar
 from datetime import datetime
 from operator import itemgetter
+import os
 
 import trap_finder
+
+class FindPathParams(object):
+    def __init__(self):
+        self.find_path_mode=""
+        self.num_directions=0
+        self.special = False
+        self.omnicient = False
+        self.damage_flag=False
+        self.damage_mode = False
+        self.damage_count =0
+        self.damageble_cells=None
+        self.use_new_weight_calc=False
+        self.damage_avoid_reward_cell = False
 
 class MemoryModel (object):
 
@@ -31,20 +45,28 @@ class MemoryModel (object):
     WALKABLE_CELL_COLOR = "white"
     BLOCKED_CELL_COLOR = "gray"
     NUM_DIRECTIONS = 1000
-
+    BOARD_REPORT_FILE= os.path.join(config.REPORT_FOLDER,"board.csv")
 
     def __init__(self):
-        self.rundata = 1
+        self.rundata = rundata.RunData()
         self.marking_reward_space = False
-        self.reward_start = None
-        self.reward_end = None
+        self.reward_start = [5,(config.NUMBER_OF_CELLS-1)*config.CELL_WIDTH+5,]
+
+        self.reward_end = [(config.NUMBER_OF_CELLS-1)*config.CELL_WIDTH+1,1]
         self.stop_path_flag = False
+
         self.reporter = report.Report()
         self.current_maze = config.MAZE_LIST[0]
         self.damage_generator= maze.DamageGeneratorSimple()
         self.damageble_cells_for_this_session = None
         self.damageble_cells_cumulative = {}
         self.running_function=""
+        self.test_index=0
+        # delete some report files
+        if not os.path.exists(config.REPORT_FOLDER):
+            os.mkdir(config.REPORT_FOLDER)
+        if os.path.exists(self.BOARD_REPORT_FILE):
+            os.remove(self.BOARD_REPORT_FILE)
 
     def setup_ui_buttom_control_panel(self,my_parent):
         button_group = tkinter.LabelFrame(my_parent, text='CONTROL PANEL',pady=10,padx=10)
@@ -97,7 +119,6 @@ class MemoryModel (object):
         tkinter.Label(config_panel_group, text='GRID SIZE', width=10).grid(sticky="W", row=3, column=0)
         tkinter.Entry(config_panel_group, width=10, textvar=self.grid_size_var).grid(sticky="W", row=3, column=1)
         tkinter.Button(config_panel_group, text='APPLY', width=20, command=self.apply_config_handler).grid(sticky="W", row=3, column=2)
-        tkinter.Checkbutton(config_panel_group, text="Use new weight calc",var=self.use_new_weight_calc_var).grid(sticky="W", row=4, column=2)
 
         return config_panel_group
 
@@ -115,7 +136,9 @@ class MemoryModel (object):
     def setup_ui_damage_configuration(self,my_parent):
         damage_group = tkinter.LabelFrame(my_parent, text='DAMAGE CONFIGURATION')
         tkinter.Checkbutton(damage_group, text="Damage", var=self.damage_var).grid(sticky="W",row=0,column=1)
-        self.setup_ui_damage_stategy(damage_group).grid(sticky="W",row=1,column=1)
+        tkinter.Checkbutton(damage_group, text="Avoid reward cell", var=self.damage_avoid_reward_cell_var).grid(sticky="W", row=1, column=1)
+
+        self.setup_ui_damage_stategy(damage_group).grid(sticky="W",row=2,column=1)
 
         tkinter.Label(damage_group, text='Damage Count',width=20).grid(sticky="W",row=3,column=0)
         tkinter.Entry(damage_group, width=5, textvariable=self.damage_count_var).grid(sticky="W",row=3,column=1)
@@ -132,11 +155,14 @@ class MemoryModel (object):
         self.right = tkinter.Canvas(canvas_frame,
                                width=config.CELL_WIDTH,
                                height=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
-
+        self.bottom = tkinter.Canvas(canvas_frame,
+                                    height=config.CELL_WIDTH,
+                                    width=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
         # pack mean you add show the canvas. By default it will not show
         self.left.grid(row=1, column=0)
         self.canvas.grid(row=1, column=1)
         self.right.grid(row=1, column=2)
+        self.bottom.grid(row=2, column=0,columnspan=3)
         self.canvas.bind("<Button-1>", self.on_clicked)
 
     def resize(self):
@@ -146,8 +172,13 @@ class MemoryModel (object):
                               height=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
         self.right.config( width=config.CELL_WIDTH,
                                height=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
+        self.bottom.config(height=config.CELL_WIDTH,
+                                    width=config.CELL_WIDTH * config.NUMBER_OF_CELLS)
         self.setup_ui_cells()
     def setup_ui_cells(self):
+
+        for i in range(config.NUMBER_OF_CELLS):
+            self.left.create_text(8,i*config.CELL_WIDTH+10,fill="darkblue",font="Times 10 italic",text=f"{i}")
         # now create rectangle
         for i in range(config.NUMBER_OF_CELLS):
             for j in range(config.NUMBER_OF_CELLS):
@@ -162,6 +193,8 @@ class MemoryModel (object):
                                               self.CELL_WIDTH * (j + 1),
                                               self.CELL_WIDTH * (i + 1),
                                               fill=fill_color)
+        for i in range(config.NUMBER_OF_CELLS):
+            self.bottom.create_text(i*config.CELL_WIDTH+10,8,fill="darkblue",font="Times 10 italic",text=f"{i}")
 
     def draw_board(self):
         self.root = tkinter.Tk()  # start the gui engine
@@ -175,7 +208,7 @@ class MemoryModel (object):
         self.gamma_var = DoubleVar()
         self.alpha_var = DoubleVar()
         self.grid_size_var = IntVar()
-        self.use_new_weight_calc_var = IntVar()
+        self.damage_avoid_reward_cell_var = IntVar()
 
         self.strategy_var.set(1)
         self.damage_var.set(0)
@@ -186,7 +219,7 @@ class MemoryModel (object):
         self.gamma_var.set(config.GAMMA)
         self.alpha_var.set(config.ALPHA)
         self.grid_size_var.set(config.NUMBER_OF_CELLS)
-        self.use_new_weight_calc_var.set(0)
+        self.damage_avoid_reward_cell_var.set(0)
 
         ## TOP CONTROL BUTTON FRAME
         self.top_frame = tkinter.Frame(self.root)
@@ -264,7 +297,7 @@ class MemoryModel (object):
         config.set_gamma(float(self.gamma_var.get()))
         config.set_alpha(float(self.alpha_var.get()))
         config.set_grid_size(int(self.grid_size_var.get()))
-        print(f"GAMMA:{config.GAMMA} ALPHA:{config.ALPHA}")
+
     def apply_config_handler(self):
         grid_size_changed = False
         if config.NUMBER_OF_CELLS != int(self.grid_size_var.get()):
@@ -304,10 +337,10 @@ class MemoryModel (object):
         # take snapshot of what we leanred
         self.my_maze.take_snapshot()
         self.damageble_cells_for_this_session = None # reset after start leaning
-        self.my_maze.save_matrix("ml.csv")
+        self.my_maze.save_matrix(os.path.join(config.REPORT_FOLDER,"ml.csv"))
 
     def collect_data(self):
-        f = open("data.csv", "w+")
+        f = open(os.path.join(config.REPORT_FOLDER,"data.csv"), "w+")
         for i in range(100):
             if i==0:
                 f.write(rundata.RunData.report_heading()+"\n")
@@ -316,7 +349,16 @@ class MemoryModel (object):
             success = True
             for n in [5,10,15,20,30,40,60,80,100,150,200,300,400,600,1000]:
                 self.update_status(f"FIND PATH - RUN #:{i} NUM_DIRECTIONS #:{n}")
-                success = self.find_path(n,False,False,0,0,0,0,True)
+                fp = FindPathParams()
+                fp.num_directions=n
+                fp.special = False
+                fp.omnicient = False
+                fp.damage_flag=0
+                fp.damage_mode=0
+                fp.damage_count=0
+                fp.use_new_weight_calc=False
+
+                success = self.find_path(fp)
                 if not success:
                     break
                 f.write(str(self.rundata) + "\n")
@@ -333,18 +375,16 @@ class MemoryModel (object):
         self.change_maze(self.maze_name_var.get())
 
     def change_maze(self,maze_to_load):
+        self.maze_name_var.set(maze_to_load)
         if self.current_maze != maze_to_load:
-            print("=== BEFORE CHANGING ===")
-            self.print_board()
             # get the damaged cells list and degree first
             board = maze_maker.MazeBuilder.load_board(maze_to_load)
             self.my_maze.reinitialize(board)
-            print("=== AFTER CHANGING ===")
-            self.print_board()
             # remove unwanter uis
             self.remove_upper_layer()
             self.update_ui(board)
             self.current_maze = maze_to_load
+            self.damageble_cells_for_this_session = None
             # update to next
             for c,v in self.damageble_cells_cumulative.items():
                 current_damage_index = v[1]
@@ -356,6 +396,30 @@ class MemoryModel (object):
                 v[1] = next_damage_index
 
     def analyze_damage_handler(self):
+        test_damage_count = 50
+        test_count =2
+        # for each maze
+        for mze in config.MAZE_LIST:
+            self.change_maze(mze)  # load the maze
+            damage_it = 0 # no damage
+            for damage_it in [0,1]:  # with and without damage
+                for i in range(test_count): # omnicient
+                    self.test_index = i
+                    fp = FindPathParams()
+                    fp.num_directions = self.NUM_DIRECTIONS
+                    fp.special = False
+                    fp.omnicient = False
+                    fp.damage_flag = damage_it
+                    fp.damage_mode = config.DAMAGE_MODE_SINGLE_CELL
+                    fp.damage_count = test_damage_count
+                    fp.use_new_weight_calc = False
+                    fp.damage_avoid_reward_cell = True
+                    self.find_path_omnicient(fp)
+                    self.update_status("Pausing test for 5 sec...")
+                    time.sleep(3)
+        self.update_status("Done analyzing...")
+
+    def analyze_damage_handler_full(self):
         test_damage_count = 10
         test_count =2
         # for each maze
@@ -367,16 +431,29 @@ class MemoryModel (object):
             damage_it = 0 # no damage
             for damage_it in [0,1]:  # with and without damage
                 for i in range(test_count): # omnicient
-                    self.find_path_omnicient(num_directions=self.NUM_DIRECTIONS,
-                                         damage_flag=damage_it, damage_mode=config.DAMAGE_MODE_SINGLE_CELL,
-                                          damage_count=test_damage_count)
+                    fp = FindPathParams()
+                    fp.num_directions = self.NUM_DIRECTIONS
+                    fp.special = False
+                    fp.omnicient = False
+                    fp.damage_flag = damage_it
+                    fp.damage_mode = config.DAMAGE_MODE_SINGLE_CELL
+                    fp.damage_count = test_damage_count
+                    fp.use_new_weight_calc = False
+
+                    self.find_path_omnicient(fp)
                     self.update_status("Pausing test for 5 sec...")
                     time.sleep(5)
 
                 for i in range(test_count):  # special path
-                    self.find_path_special(num_directions=self.NUM_DIRECTIONS,
-                                           damage_flag=damage_it, damage_mode=config.DAMAGE_MODE_SINGLE_CELL,
-                                           damage_count=test_damage_count)
+                    fp = FindPathParams()
+                    fp.num_directions = self.NUM_DIRECTIONS
+                    fp.special = False
+                    fp.omnicient = False
+                    fp.damage_flag = damage_it
+                    fp.damage_mode = config.DAMAGE_MODE_SINGLE_CELL
+                    fp.damage_count = test_damage_count
+                    fp.use_new_weight_calc = False
+                    self.find_path_special(fp)
                     self.update_status("Pausing test for 5 sec...")
                     time.sleep(5)
 
@@ -403,6 +480,7 @@ class MemoryModel (object):
 
         self.reportdata = report.ReportData(find_path_mode, self.get_damage_mode_str(damage_flag,damage_mode))
         if not self.damageble_cells_for_this_session:
+            print(f"Generating  New Damage for this session {find_path_mode} {damage_count} {len(self.damageble_cells_cumulative)}")
             self.damageble_cells_for_this_session = self.generate_damageble_cells(damage_mode,damage_count)
             self.damageble_cells_cumulative.update(self.damageble_cells_for_this_session)
 
@@ -422,15 +500,28 @@ class MemoryModel (object):
         damage_flag = self.damage_var.get()
         damage_mode = int(self.damage_mode_var.get())
         damage_count = int(self.damage_count_var.get())
-        use_new_weight_calc = bool(self.use_new_weight_calc_var.get())
-        r = self.find_path_omnicient(self.NUM_DIRECTIONS,damage_flag,damage_mode,damage_count,use_new_weight_calc)
-        self.my_maze.save_matrix("mo.csv")
+        damage_avoid_reward_cell = bool(self.damage_avoid_reward_cell_var.get())
+        fp = FindPathParams()
+        fp.num_directions = self.NUM_DIRECTIONS
+        fp.special = False
+        fp.omnicient = False
+        fp.damage_flag = damage_flag
+        fp.damage_mode = damage_mode
+        fp.damage_count = damage_count
+        fp.use_new_weight_calc = False
+        fp.damage_avoid_reward_cell = damage_avoid_reward_cell
+
+        r = self.find_path_omnicient(fp)
+        self.my_maze.save_matrix(os.path.join(config.REPORT_FOLDER,"mo.csv"))
         return r
 
-    def find_path_omnicient(self,num_directions,damage_flag,damage_mode,damage_count,use_new_weight_calc):
+    def find_path_omnicient(self,fp):
         self.running_function = "OMNICIENT"
-        self.initialize_find_path("OMNICIENT",damage_flag,damage_mode,damage_count)
-        r = self.find_path("OMNICIENT",num_directions, True, True,damage_flag,damage_mode,damage_count,use_new_weight_calc)
+        self.initialize_find_path("OMNICIENT",fp.damage_flag,fp.damage_mode,fp.damage_count)
+        fp.special = True
+        fp.omnicient = True
+        fp.find_path_mode ="OMNICLIENT"
+        r = self.find_path(fp)
         self.finalize_find_path()
         return r
 
@@ -439,14 +530,29 @@ class MemoryModel (object):
         damage_flag = self.damage_var.get()
         damage_mode = int(self.damage_mode_var.get())
         damage_count = int(self.damage_count_var.get())
-        use_new_weight_calc = bool(self.use_new_weight_calc_var.get())
-        r =  self.find_path_regular(self.NUM_DIRECTIONS,damage_flag,damage_mode,damage_count,use_new_weight_calc)
+        damage_avoid_reward_cell = bool(self.damage_avoid_reward_cell_var.get())
+
+        use_new_weight_calc = False
+        fp = FindPathParams()
+        fp.num_directions = self.NUM_DIRECTIONS
+        fp.special = False
+        fp.omnicient = False
+        fp.damage_flag = damage_flag
+        fp.damage_mode = damage_mode
+        fp.damage_count = damage_count
+        fp.use_new_weight_calc = False
+        fp.damage_avoid_reward_cell = damage_avoid_reward_cell
+
+        r =  self.find_path_regular(fp)
         return r
 
-    def find_path_regular(self,num_directions,damage_flag,damage_mode,damage_count,use_new_weight_calc):
+    def find_path_regular(self,fp):
         self.running_function = "REGULAR"
-        self.initialize_find_path("REGULAR",damage_flag,damage_mode,damage_count)
-        r = self.find_path("REGULAR",num_directions, False, False,damage_flag,damage_mode,damage_count,use_new_weight_calc)
+        self.initialize_find_path("REGULAR",fp.damage_flag,fp.damage_mode,fp.damage_count)
+        fp.special = False
+        fp.omnicient = False
+        fp.find_path_mode="REGULAR"
+        r = self.find_path(fp)
         self.finalize_find_path()
         return r
 
@@ -454,22 +560,37 @@ class MemoryModel (object):
         damage_flag = self.damage_var.get()
         damage_mode = int(self.damage_mode_var.get())
         damage_count = int(self.damage_count_var.get())
-        use_new_weight_calc = bool(self.use_new_weight_calc_var.get())
-        r =  self.find_path_special(self.NUM_DIRECTIONS,damage_flag,damage_mode,damage_count,use_new_weight_calc)
+        damage_avoid_reward_cell = bool(self.damage_avoid_reward_cell_var.get())
+
+        use_new_weight_calc = False
+        fp = FindPathParams()
+        fp.num_directions = self.NUM_DIRECTIONS
+        fp.special = False
+        fp.omnicient = False
+        fp.damage_flag = damage_flag
+        fp.damage_mode = damage_mode
+        fp.damage_count = damage_count
+        fp.use_new_weight_calc = False
+        fp.damage_avoid_reward_cell = damage_avoid_reward_cell
+        r =  self.find_path_special(fp)
         return r
 
-    def find_path_special(self,num_directions,damage_flag,damage_mode,damage_count,use_new_weight_calc):
+    def find_path_special(self,fp):
         self.running_function = "SPECIAL"
-        self.initialize_find_path("SPECIAL",damage_flag,damage_mode,damage_count)
-        r = self.find_path("SPECIAL",num_directions, True, False,damage_flag,damage_mode,damage_count,use_new_weight_calc)
+        self.initialize_find_path("SPECIAL",fp.damage_flag,fp.damage_mode,fp.damage_count)
+        fp.special = True
+        fp.omnicient = False
+        fp.find_path_mode="SPECIAL"
+        r = self.find_path(fp)
         self.finalize_find_path()
         return r
 
-    def find_path(self,find_path_mode,num_directions,special,omnicient,damage_flag,damage_mode,damage_count,use_new_weight_calc):
+    def find_path(self,fp):
         self.update_status("Restoring from snapshot...")
         self.my_maze.restore_from_snapshot()
         self.update_status("Restoring from snapshot completed")
-        return self.path(find_path_mode,self.rat,num_directions,special,omnicient,damage_flag,damage_mode,damage_count,self.damageble_cells_cumulative,use_new_weight_calc)
+        fp.damageble_cells = self.damageble_cells_cumulative
+        return self.path(self.rat,fp)
 
     def load_maze(self):
         file_path = filedialog.askopenfilename()
@@ -803,27 +924,50 @@ class MemoryModel (object):
         str = f"{str} , damaged:{self.my_maze.get_damaged_cell_count():>8}]"
         return str
 
-    def path(self,find_path_mode,rat,num_directions,special,omnicient,damage_flag,damage_mode,damage_count,damageble_cells,use_new_weight_calc):
+    def path(self,rat,fp):
+        find_path_mode = fp.find_path_mode
+        num_directions = fp.num_directions
+        special = fp.special
+        omnicient = fp.omnicient
+        damage_flag = fp.damage_flag
+        damage_mode = fp.damage_mode
+        damage_count = fp.damage_count
+        damageble_cells = fp.damageble_cells
+        use_new_weight_calc = fp.use_new_weight_calc
+        damage_avoid_reward_cell = fp.damage_avoid_reward_cell
+
         reward_row = 10
         reward_col = 10
+        if special:
+            if self.reward_end:
+                reward_x = self.reward_end[0]
+                reward_y = self.reward_end[1]
+                reward_row = reward_y // config.CELL_WIDTH
+                reward_col = reward_x // config.CELL_WIDTH
+        else:
+            reward_x = rat.get_x()
+            reward_y = rat.get_y()
+            reward_row = reward_y // config.CELL_WIDTH
+            reward_col = reward_x // config.CELL_WIDTH
+
         if special and omnicient: # initilize
             self.update_status(f"Calculating T ...")
             self.my_maze.create_T(rat)
             self.my_maze.init_omnicient(rat)
-        config.il("BOARD BEFORE")
-        self.print_board()
+
         if damage_flag:  # if damage selected
-            self.my_maze.damage(damageble_cells)
+            r_row = None
+            r_col = None
+            if damage_avoid_reward_cell:
+                r_row = reward_row
+                r_col = reward_col
+            self.my_maze.damage(damageble_cells,r_row,r_col)
         else:
             self.my_maze.reset_damaging()
 
         if special:
             config.il(f" start({self.reward_start[0]},{self.reward_start[1]}) end ({self.reward_end[0]},{self.reward_end[1]})")
-            if self.reward_end:
-                reward_x = self.reward_end[0]
-                reward_y = self.reward_end[1]
-                reward_row = reward_y // 20
-                reward_col = reward_x // 20
+
             if omnicient:
                 self.update_status(f"Calculating weights ...")
                 self.my_maze.create_weights_omnicient(rat,reward_row,reward_col)
@@ -835,15 +979,10 @@ class MemoryModel (object):
                 else:
                     self.my_maze.create_weights_learned(rat, reward_row, reward_col)
                 self.update_status(f"Calculating weights completed")
-        else:
-            reward_x = rat.get_x()
-            reward_y = rat.get_y()
-            reward_row = reward_y // 20
-            reward_col = reward_x // 20
-        # damage
-        # if damaging needed
-        config.il("BOARD AFTER")
-        self.print_board()
+
+        config.il("BOARD:")
+        self.print_board() # print to console
+
         # dmage
         learning_distance = rat.get_distance()
         rat.set_distance(0)
@@ -864,8 +1003,6 @@ class MemoryModel (object):
         limit_x = (x_f//config.CELL_WIDTH)*config.CELL_WIDTH
         limit_y = (y_f//config.CELL_WIDTH)*config.CELL_WIDTH
         arr = []
-        weights = []
-        weights_map = {}
         trap_count =  0
         trap_count_delta=0
         cont_count = 0
@@ -886,7 +1023,6 @@ class MemoryModel (object):
             loop_count +=1
             self.update_status( self.gen_status_string(find_path_mode,loop_count,trap_count))
 
-            weights.clear()
             arr.clear()
             # max entry picker
             max_entry_picker.clear()
@@ -907,8 +1043,6 @@ class MemoryModel (object):
                         # if the proposed cell's weight is greater thatn the one already in
                         if not self.is_intersect_wth_gray_cells_new(rat.get_x(),rat.get_y(),x_temp,y_temp):
                             # and not intercepting with non travellable cells add to the weight map
-                            weights.append([self.board()[row][col].get_weight(), x_temp,y_temp])
-                            weights_map[self.board()[row][col].get_weight()] = [x_temp,y_temp]
                             max_entry_picker.add(x_temp,y_temp,self.board()[row][col].get_weight())
                     else:
                         rat.set_v_x(v_x)
@@ -917,21 +1051,9 @@ class MemoryModel (object):
                     rat.set_v_x(v_x)
                     rat.set_v_y(v_y)
 
-            if weights_map:
-                if 2==1 and trap_details and trap_details[0]:
-                    # trapped last time so lets remove one
-                    print(f"Untrapping {pop_count}")
-                    for ti in range(pop_count):
-                        if len(weights_map):
-                            weights_map.pop(max(weights_map))
-                    if weights_map:
-                        b_max = weights_map[max(weights_map)]
-                    else:
-                        print("#### TRAPPED BUT NO WHERE ELSE TO GO ###")
-                else:
-                    #b_max = weights_map[max(weights_map)]
-                    #print(f"->{max(weights_map)}")
-                    b_max,weight_to_move  = max_entry_picker.get_next_coords()
+            if max_entry_picker.has_entry():
+                b_max,weight_to_move  = max_entry_picker.get_next_coords()
+
                 if b_max:
                     new_row = b_max[1] // 20
                     new_col = b_max[0] // 20
@@ -954,12 +1076,23 @@ class MemoryModel (object):
                     if trap_count > 2000:
                         return False
                     rat.move(b_max[0], b_max[1])
+            else:
+                print("###BUG Fix....")
+                continue
         # update rundata
         self.rundata.num_directions = len(arr)
         self.rundata.num_traps = trap_count
         self.rundata.search_length = rat.get_distance()
         self.update_status(f"find path completed search_length {self.rundata.search_length:>15.2f}")
+
+        test_title = self.generate_test_title(self.maze_name_var.get(),find_path_mode,damage_flag)
+        self.save_board_to_file(test_title)
+        self.save_board_as_image(test_title)
         return True
+
+    def generate_test_title(self,maze,find_path_mode,damage_flag):
+        damage_indicator = "D" if damage_flag else "ND"
+        return f"{maze}_{find_path_mode}_{damage_indicator}_{self.test_index}"
 
     def reset_mouse(self, rat):
         rat.set_x(0)
@@ -984,6 +1117,21 @@ class MemoryModel (object):
             for j in range(config.NUMBER_OF_CELLS):
                 config.i(self.board()[i][j])
             config.il("")
+        config.i("{:10} ".format(''))
+        for i in range(config.NUMBER_OF_CELLS):
+            config.i("{:10.0f} ".format(i))
+
+    def save_board_to_file(self,heading):
+        with open(self.BOARD_REPORT_FILE, 'a+') as board_file:
+            board_file.write(f"---{heading}---\n")
+            for i in range(config.NUMBER_OF_CELLS):
+                for j in range(config.NUMBER_OF_CELLS):
+                    board_file.write(f"{self.board()[i][j]},")
+                board_file.write("\n")
+        # save imge
+    def save_board_as_image(self,filename):
+        filename = os.path.join(config.REPORT_FOLDER,filename)
+        self.canvas.postscript(file=f"{filename}.ps", colormode='color')
 
     def debug_record_move(self,x1,y1,x2,y2,intersected):
         with open("move.csv", 'a+') as move_file:

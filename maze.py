@@ -12,7 +12,7 @@ from operator import itemgetter
 
 
 class DamageGeneratorSimple(object):
-    STATIC_DAMAGE_LIST=[0.9,0.8,0.6,0.3,0.1,0]
+    STATIC_DAMAGE_LIST=[0.9,0.8,0.6,0.3,0]
     index = 0
     def get_damage(self,idx=None):
         if not idx:
@@ -22,6 +22,7 @@ class DamageGeneratorSimple(object):
 
     def get_index(self):
         return self.index
+
     def get_next_index(self,i):
         i +=1
         if i >= len(self.STATIC_DAMAGE_LIST):
@@ -299,9 +300,9 @@ class Maze(object):
         reward_matrix = []
         for f in range (config.NUMBER_OF_CELLS_SQR):
             if f == reward_row*config.NUMBER_OF_CELLS+reward_col:
-                reward_matrix.append(1)
+                reward_matrix.append(1000)
             else:
-                reward_matrix.append(-1)
+                reward_matrix.append(1)
         weights = []
         for g in range (config.NUMBER_OF_CELLS_SQR):
             sum = 0
@@ -347,7 +348,6 @@ class Maze(object):
                 sum += self.T[b][a]
             total.append(sum)
 
-        print(total)
         return
 
     def init_omnicient(self,mouse):
@@ -582,11 +582,12 @@ class Maze(object):
         """
         return self.board[row][col].is_not_travellable
 
-    def damage(self,damageble_cells):
+    def damage(self,damageble_cells,reward_row=None,reward_col=None):
         for c,v in damageble_cells.items():
-            damage_degree = v[0]
-            damage_index = v[1]
-            self.damage_a_cell(c[0], c[1], damage_degree, damage_index, True)
+            if c[0] != reward_row and c[1] != reward_col:
+                damage_degree = v[0]
+                damage_index = v[1]
+                self.damage_a_cell(c[0], c[1], damage_degree, damage_index, True)
 
     def save_matrix(self, filename):
         with open(filename, 'w') as mfile:

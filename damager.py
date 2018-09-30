@@ -52,8 +52,14 @@ class DamageManager(object):
         valid_cell = False
         r = None
         while not valid_cell:
-            rnd = int(np.random.random()* len(self.travelled_cells))
-            r = self.travelled_cells[rnd]
+            if self.travelled_cells:
+                rnd = int(np.random.random()* len(self.travelled_cells))
+                r = self.travelled_cells[rnd]
+            else:
+                # we did not travel so pick a random value
+                row = int(np.random.random()* config.NUMBER_OF_CELLS)
+                col = int(np.random.random()* config.NUMBER_OF_CELLS)
+                r = [row,col]
             valid_cell = self.is_valid_damageable_cell(r[0],r[1])
         return r
 

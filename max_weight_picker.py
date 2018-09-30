@@ -40,11 +40,16 @@ class MaxWeightPicker(object):
         entries.append(entry)
 
     def get_default(self):
-        weight_moving_to = max(self.weights_map)
-        entries = self.weights_map[weight_moving_to]
-        lucky_entry = random.randint(0, len(entries) - 1)
-        coords = [entries[lucky_entry].x, entries[lucky_entry].y]
-        return (coords, weight_moving_to)
+        if self.weights_map:
+            weight_moving_to = max(self.weights_map)
+            entries = self.weights_map[weight_moving_to]
+            lucky_entry = random.randint(0, len(entries) - 1)
+            coords = [entries[lucky_entry].x, entries[lucky_entry].y]
+            return (coords, weight_moving_to)
+        return (None,None)
+
+    def has_entry(self):
+        return self.weights_map
 
     def get_next_coords(self):
         """

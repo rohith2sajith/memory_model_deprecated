@@ -1,5 +1,6 @@
 import datetime
 import config
+import os
 class Report(object):
 
 
@@ -20,7 +21,7 @@ class Report(object):
                     )
 
     def report(self,str):
-        with open("data.csv", "a+") as f:
+        with open(os.path.join(config.REPORT_FOLDER,"report.csv"), "a+") as f:
             f.write(f"{str}\n")
 
 class ReportData(object):
