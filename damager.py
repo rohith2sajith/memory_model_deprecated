@@ -16,7 +16,8 @@ class DamageManager(object):
             self.damage_policy_spread = False
         self.damage_generator = damage_generator
         # storage
-        self.cell_to_damage_cumulative = {}
+        self.cell_to_damage_cumulative_single = {}
+        self.cell_to_damage_cumulative_spread = {}
 
     def is_valid_damageable_cell(self,row,col):
         """
@@ -63,9 +64,12 @@ class DamageManager(object):
             valid_cell = self.is_valid_damageable_cell(r[0],r[1])
         return r
 
-
     def update_past_damages(self):
-        for c, v in self.cell_to_damage_cumulative.items():
+        self._update_past_damages(self.cell_to_damage_cumulative_spread)
+        self._update_past_damages(self.cell_to_damage_cumulative_single)
+
+    def _update_past_damages(self,cell_to_damage_cumulative):
+        for c, v in cell_to_damage_cumulative.items():
             current_damage_index = v[1]
             current_damage_degree = v[0]
             next_damage_index = self.damage_generator.get_next_index(current_damage_index)
@@ -73,6 +77,36 @@ class DamageManager(object):
             # update
             v[0] = next_damage_degree
             v[1] = next_damage_index
+
+    def generate_single(self,damage_count,damage_degree, damage_index):
+        damageble_cells = {}
+        for di in range(damage_count):
+            r = self.a_random_cell()
+            damageble_cells[(r[0], r[1])] = [damage_degree, damage_index]
+        return damageble_cells
+
+    def generate_spread(self,damage_count,damage_degree, damage_index):
+        damageble_cells = {}
+        if self.cell_to_damage_cumulative_spread:
+            # we expand existing
+            cc = copy.deepcopy(self.cell_to_damage_cumulative_spread)
+            for k, v in cc.items():
+                for a in self.find_adjacent_cells(k[0], k[1]):
+                    ck = (a[0], a[1])
+                    if ck not in damageble_cells and not self.is_already_in_the_list(ck):
+                        damageble_cells[ck] = [damage_degree, damage_index]
+
+        else:
+            # first time
+            for di in range(damage_count):
+                r = self.a_random_cell()
+                damageble_cells[(r[0], r[1])] = [damage_degree, damage_index]
+        return damageble_cells
+
+    def _update_the_list(self,damageble_cells,cell_to_damage_cumulative):
+        for k, v in damageble_cells.items():
+            if not self.is_already_in_the_list(k):
+                cell_to_damage_cumulative[k] = v
 
     def generate(self):
         """
@@ -87,30 +121,27 @@ class DamageManager(object):
 
         if self.damage_mode == config.DAMAGE_MODE_SINGLE_CELL:
             # single cell so just add damage_count random cells
-            for di in range(self.damage_count):
-                r = self.a_random_cell()
-                damageble_cells[(r[0], r[1])] = [damage_degree, damage_index]
-        else:
+            damageble_cells = self.generate_single(self.damage_count,damage_degree, damage_index)
+            self._update_the_list(damageble_cells,self.cell_to_damage_cumulative_single)
+        elif self.damage_mode == config.DAMAGE_MODE_SPREAD_CELL:
             # spread
-            # if there is already some then spread
-            if self.cell_to_damage_cumulative:
-                # we expand existing
-                cc = copy.deepcopy(self.cell_to_damage_cumulative)
-                for k,v in cc.items():
-                    for a in self.find_adjacent_cells(k[0], k[1]):
-                        ck = (a[0], a[1])
-                        if ck not in damageble_cells and ck not in self.cell_to_damage_cumulative:
-                            damageble_cells[ck] = [damage_degree, damage_index]
+            damageble_cells = self.generate_spread(self.damage_count,damage_degree, damage_index)
+            self._update_the_list(damageble_cells, self.cell_to_damage_cumulative_spread)
+        else: # both
+            damage_count_single = self.damage_count//2
+            damage_count_spread = self.damage_count - damage_count_single
+            # single
+            damageble_cells = self.generate_single(damage_count_single, damage_degree, damage_index)
+            self._update_the_list(damageble_cells, self.cell_to_damage_cumulative_single)
+            # spread
+            damageble_cells = self.generate_spread(damage_count_spread, damage_degree, damage_index)
+            self._update_the_list(damageble_cells, self.cell_to_damage_cumulative_spread)
 
-            else:
-                # first time
-                for di in range(self.damage_count):
-                    r = self.a_random_cell()
-                    damageble_cells[(r[0], r[1])] = [damage_degree, damage_index]
 
-        for k,v in damageble_cells.items():
-            if k not in self.cell_to_damage_cumulative:
-                self.cell_to_damage_cumulative[k] = v
+    def is_already_in_the_list(self,c):
+        return c in self.cell_to_damage_cumulative_single or c in self.cell_to_damage_cumulative_spread
 
     def get_cells_damage(self):
-        return self.cell_to_damage_cumulative
+        cc = copy.deepcopy(self.cell_to_damage_cumulative_single)
+        cc.update(self.cell_to_damage_cumulative_spread)
+        return cc

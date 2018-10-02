@@ -128,9 +128,11 @@ class MemoryModel (object):
 
         rb1 = tkinter.Radiobutton(damage_stategy_group, var=self.damage_mode_var, text="Single cell every time", value="0")
         rb2 = tkinter.Radiobutton(damage_stategy_group, var=self.damage_mode_var, text="Spread every time", value="1")
+        rb3 = tkinter.Radiobutton(damage_stategy_group, var=self.damage_mode_var, text="Both", value="2")
 
         rb1.grid(sticky="W", row=0, column=1)
         rb2.grid(sticky="W", row=1, column=1)
+        rb3.grid(sticky="W", row=2, column=1)
 
         return damage_stategy_group
 
