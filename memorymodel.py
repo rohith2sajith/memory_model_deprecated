@@ -62,6 +62,7 @@ class MemoryModel (object):
         self.damageble_cells_cumulative = {}
         self.running_function=""
         self.test_index=0
+        self.damage_manager = None
         # delete some report files
         if not os.path.exists(config.REPORT_FOLDER):
             os.mkdir(config.REPORT_FOLDER)
@@ -211,15 +212,15 @@ class MemoryModel (object):
         self.damage_avoid_reward_cell_var = IntVar()
 
         self.strategy_var.set(1)
-        self.damage_var.set(0)
-        self.damage_count_var.set("10")
-        self.damage_mode_var.set("0")
+        self.damage_var.set(1)
+        self.damage_count_var.set("2")
+        self.damage_mode_var.set("1")
         self.maze_name_var.set("default")
         self.iterations_var.set(config.num_learning_steps)
         self.gamma_var.set(config.GAMMA)
         self.alpha_var.set(config.ALPHA)
         self.grid_size_var.set(config.NUMBER_OF_CELLS)
-        self.damage_avoid_reward_cell_var.set(0)
+        self.damage_avoid_reward_cell_var.set(1)
 
         ## TOP CONTROL BUTTON FRAME
         self.top_frame = tkinter.Frame(self.root)
@@ -384,21 +385,14 @@ class MemoryModel (object):
             self.remove_upper_layer()
             self.update_ui(board)
             self.current_maze = maze_to_load
-            self.damageble_cells_for_this_session = None
-            # update to next
-            for c,v in self.damageble_cells_cumulative.items():
-                current_damage_index = v[1]
-                current_damage_degree = v[0]
-                next_damage_index = self.damage_generator.get_next_index(current_damage_index)
-                next_damage_degree = self.damage_generator.get_damage(next_damage_index)
-                # update
-                v[0] = next_damage_degree
-                v[1] = next_damage_index
+            self.damage_manager.generate()
+
 
     def analyze_damage_handler(self):
         test_damage_count = 50
-        test_count =2
+        test_count =1
         # for each maze
+
         for mze in config.MAZE_LIST:
             self.change_maze(mze)  # load the maze
             damage_it = 0 # no damage
@@ -410,7 +404,7 @@ class MemoryModel (object):
                     fp.special = False
                     fp.omnicient = False
                     fp.damage_flag = damage_it
-                    fp.damage_mode = config.DAMAGE_MODE_SINGLE_CELL
+                    fp.damage_mode = config.DAMAGE_MODE_SPREAD_CELL # config.DAMAGE_MODE_SINGLE_CELL
                     fp.damage_count = test_damage_count
                     fp.use_new_weight_calc = False
                     fp.damage_avoid_reward_cell = True
@@ -479,10 +473,7 @@ class MemoryModel (object):
         self.stop_path_flag = False
 
         self.reportdata = report.ReportData(find_path_mode, self.get_damage_mode_str(damage_flag,damage_mode))
-        if not self.damageble_cells_for_this_session:
-            print(f"Generating  New Damage for this session {find_path_mode} {damage_count} {len(self.damageble_cells_cumulative)}")
-            self.damageble_cells_for_this_session = self.generate_damageble_cells(damage_mode,damage_count)
-            self.damageble_cells_cumulative.update(self.damageble_cells_for_this_session)
+        self.damageble_cells_cumulative = self.generate_damageble_cells(damage_mode,damage_count)
 
     def finalize_find_path(self):
         self.reportdata.learning_length = self.rundata.learning_length
@@ -915,8 +906,11 @@ class MemoryModel (object):
         return  x_f > config.exit_cell_x1() and x_f < config.exit_cell_x2() and y_f > config.exit_cell_y1() and y_f < config.exit_cell_y2()
 
     def generate_damageble_cells(self,damage_mode,damage_count):
-        dm = damager.DamageManager(self.board(),self.damage_generator,damage_mode,damage_count,self.my_maze.travelled_cells)
-        return dm.get_damagable_cells()
+        if not self.damage_manager:
+            self.damage_manager = damager.DamageManager(self.board(),self.damage_generator,damage_mode,damage_count,self.my_maze.travelled_cells)
+            self.damage_manager.generate()
+
+        return self.damage_manager.get_cells_damage()
 
     def gen_status_string(self,find_path_mode,loop_count,trap_count):
         str = f"Processing {find_path_mode:>12}..."

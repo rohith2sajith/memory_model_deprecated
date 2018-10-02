@@ -584,7 +584,7 @@ class Maze(object):
 
     def damage(self,damageble_cells,reward_row=None,reward_col=None):
         for c,v in damageble_cells.items():
-            if c[0] != reward_row and c[1] != reward_col:
+            if not (c[0] == reward_row and c[1]==reward_col):
                 damage_degree = v[0]
                 damage_index = v[1]
                 self.damage_a_cell(c[0], c[1], damage_degree, damage_index, True)
