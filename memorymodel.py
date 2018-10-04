@@ -37,7 +37,6 @@ class FindPathParams(object):
         self.damageble_cells=None
         self.use_new_weight_calc=False
         self.damage_avoid_reward_cell = False
-        self.prev_find_path_search_length=0
 
 class MemoryModel (object):
 
@@ -64,6 +63,7 @@ class MemoryModel (object):
         self.running_function=""
         self.test_index=0
         self.damage_manager = None
+        self.prev_find_path_search_length=0
         # delete some report files
         if not os.path.exists(config.REPORT_FOLDER):
             os.mkdir(config.REPORT_FOLDER)
@@ -399,7 +399,9 @@ class MemoryModel (object):
         for mze in config.MAZE_LIST:
             self.change_maze(mze)  # load the maze
             damage_it = 0 # no damage
+
             for damage_it in [0,1]:  # with and without damage
+                sum_find_path_length = 0
                 for i in range(test_count): # omnicient
                     self.test_index = i
                     fp = FindPathParams()
@@ -414,6 +416,14 @@ class MemoryModel (object):
                     self.find_path_omnicient(fp)
                     self.update_status("Pausing test for 5 sec...")
                     time.sleep(3)
+                    sum_find_path_length += self.rundata.search_length
+
+                if not damage_it: # control mode
+                    self.prev_find_path_search_length = sum_find_path_length/test_count
+                else:
+                    self.prev_find_path_search_length =0
+
+
         self.update_status("Done analyzing...")
 
     def analyze_damage_handler_full(self):
@@ -495,7 +505,6 @@ class MemoryModel (object):
             self.reportdata.control_path_length = self.prev_find_path_search_length
 
         self.reporter.report(self.reportdata)
-        self.prev_find_path_search_length = self.rundata.search_length # store it
 
     def find_path_handler_omnicient(self):
 
@@ -1026,6 +1035,10 @@ class MemoryModel (object):
             if self.stop_path_flag:
                 break # asked to stop
             loop_count +=1
+            if loop_count>2000:
+                self.stop_path_flag = True
+                break
+
             self.update_status( self.gen_status_string(find_path_mode,loop_count,trap_count))
 
             arr.clear()
@@ -1082,7 +1095,6 @@ class MemoryModel (object):
                         return False
                     rat.move(b_max[0], b_max[1])
             else:
-                print("###BUG Fix....")
                 continue
         # update rundata
         self.rundata.num_directions = len(arr)

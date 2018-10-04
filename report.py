@@ -11,16 +11,17 @@ class Report(object):
         self.report(f"------- {datetime.datetime.now()} -------")
         self.report(f"{'fph_mode':<12},"+
                     f"{'damage_mode':<12},"+
-                    f"{'lng_length':<12}," +
-                    f"{'lng_num_sqrs':<12}," +
-                    f"{'lng_time':<12}," +
-                    f"{'fph_aborted':<12}," +
-                    f"{'fph_sr_lnth':<12}," +
-                    f"{'fph_num_trps':<12}," +
-                    f"{'fph_num_dmgd':<12}," +
-                    f"{'fph_dmg_dgr_rio':<12}," +
-                    f"{'fph_dmg_cnt_rio':<12}," +
-                    f"{'fph_dmg_pth_rio':<12}"
+                    f"{'l_length':<12}," +
+                    f"{'l_num_sqrs':<12}," +
+                    f"{'l_time':<12}," +
+                    f"{'f_aborted':<12}," +
+                    f"{'f_sr_lnth':<12}," +
+                    f"{'f_num_trps':<12}," +
+                    f"{'f_num_dmgd':<12}," +
+                    f"{'f_totdm_dgr':<12}," +
+                    f"{'f_dmdgr_rio':<12}," +
+                    f"{'f_dmcnt_rio':<12}," +
+                    f"{'f_dmpth_rio':<12}"
                     )
 
     def report(self,str):
@@ -74,10 +75,10 @@ class ReportData(object):
                  f"{self.find_path_search_length:>12.3f}," +
                  f"{self.find_path_num_traps:>12.0f}," +
                  f"{self.find_path_damaged_cell_count:>12.0f},"+
-
-                 f"{fph_dmg_dgr_rio:>12.8f}," +
-                 f"{fph_dmg_cnt_rio:>12.8f}," +
-                 f"{fph_dmg_pth_rio:>12.8f}"
+                 f"{self.sum_of_damage_degrees:>12.5f}," +
+                 f"{fph_dmg_dgr_rio:>12.5f}," +
+                 f"{fph_dmg_cnt_rio:>12.5f}," +
+                 f"{fph_dmg_pth_rio:>12.5f}"
                 )
 
 

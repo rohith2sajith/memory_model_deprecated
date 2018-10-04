@@ -149,7 +149,7 @@ class DamageManager(object):
     def get_sum_of_damage_degree(self):
         sum = 0
         for k,v in self.get_cells_damage().items():
-            sum += v[0]
+            sum += (1-v[0])
         return sum
 
     def get_num_cells_damaged(self):
