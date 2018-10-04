@@ -37,6 +37,7 @@ class FindPathParams(object):
         self.damageble_cells=None
         self.use_new_weight_calc=False
         self.damage_avoid_reward_cell = False
+        self.prev_find_path_search_length=0
 
 class MemoryModel (object):
 
@@ -391,8 +392,8 @@ class MemoryModel (object):
 
 
     def analyze_damage_handler(self):
-        test_damage_count = 50
-        test_count =1
+        test_damage_count = 150
+        test_count =3
         # for each maze
 
         for mze in config.MAZE_LIST:
@@ -406,7 +407,7 @@ class MemoryModel (object):
                     fp.special = False
                     fp.omnicient = False
                     fp.damage_flag = damage_it
-                    fp.damage_mode = config.DAMAGE_MODE_SPREAD_CELL # config.DAMAGE_MODE_SINGLE_CELL
+                    fp.damage_mode = config.DAMAGE_MODE_SINGLE_CELL
                     fp.damage_count = test_damage_count
                     fp.use_new_weight_calc = False
                     fp.damage_avoid_reward_cell = True
@@ -474,10 +475,10 @@ class MemoryModel (object):
         self.remove_upper_layer()
         self.stop_path_flag = False
 
-        self.reportdata = report.ReportData(find_path_mode, self.get_damage_mode_str(damage_flag,damage_mode))
+        self.reportdata = report.ReportData(find_path_mode, damage_flag,self.get_damage_mode_str(damage_flag,damage_mode))
         self.damageble_cells_cumulative = self.generate_damageble_cells(damage_mode,damage_count)
 
-    def finalize_find_path(self):
+    def finalize_find_path(self,damage_flag):
         self.reportdata.learning_length = self.rundata.learning_length
         self.reportdata.find_path_num_traps  = self.rundata.num_traps
         self.reportdata.find_path_search_length = self.rundata.search_length
@@ -486,7 +487,15 @@ class MemoryModel (object):
         self.reportdata.learning_time  = self.rundata.time
         self.reportdata.find_path_aborted = self.stop_path_flag
         self.reportdata.find_path_damaged_cell_count = self.my_maze.get_damaged_cell_count()
+
+        self.reportdata.sum_of_damage_degrees = self.damage_manager.get_sum_of_damage_degree()
+        self.reportdata.num_cells_damaged = self.damage_manager.get_num_cells_damaged()
+        self.reportdata.total_cells = config.NUMBER_OF_CELLS_SQR
+        if damage_flag:
+            self.reportdata.control_path_length = self.prev_find_path_search_length
+
         self.reporter.report(self.reportdata)
+        self.prev_find_path_search_length = self.rundata.search_length # store it
 
     def find_path_handler_omnicient(self):
 
@@ -515,7 +524,7 @@ class MemoryModel (object):
         fp.omnicient = True
         fp.find_path_mode ="OMNICLIENT"
         r = self.find_path(fp)
-        self.finalize_find_path()
+        self.finalize_find_path(fp.damage_flag)
         return r
 
     # Find path reguak

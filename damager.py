@@ -145,3 +145,12 @@ class DamageManager(object):
         cc = copy.deepcopy(self.cell_to_damage_cumulative_single)
         cc.update(self.cell_to_damage_cumulative_spread)
         return cc
+
+    def get_sum_of_damage_degree(self):
+        sum = 0
+        for k,v in self.get_cells_damage().items():
+            sum += v[0]
+        return sum
+
+    def get_num_cells_damaged(self):
+        return len(self.get_cells_damage())
