@@ -12,7 +12,7 @@ from operator import itemgetter
 
 
 class DamageGeneratorSimple(object):
-    STATIC_DAMAGE_LIST=[0.9,0.8,0.6,0.3,0]
+    STATIC_DAMAGE_LIST=[0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1,0]
     index = 0
     def get_damage(self,idx=None):
         if not idx:
@@ -75,6 +75,11 @@ class Maze(object):
             damage_degree = self.damage_generator.get_damage(damage_index)
             self.damage_a_cell(c[0],c[1],damage_degree,damage_index,True)
 
+    def initialize_T(self):
+        self.T = []
+        for d in range(config.NUMBER_OF_CELLS_SQR):
+            self.w.append(0)
+            self.T.append([0] * config.NUMBER_OF_CELLS_SQR)
 
     def reinitialize(self,board):
         self.matrix = np.identity(config.NUMBER_OF_CELLS_SQR)
@@ -136,17 +141,17 @@ class Maze(object):
         """
         print("..")
         self.snapshot_board = copy.deepcopy(self.board)
-        self.snapshot_matrix = copy.deepcopy(self.matrix)
-        self.snapshot_T = copy.deepcopy(self.T)
-        self.snapshot_w  = copy.deepcopy(self.w)
+        #self.snapshot_matrix = copy.deepcopy(self.matrix)
+        #self.snapshot_T = copy.deepcopy(self.T)
+        #self.snapshot_w  = copy.deepcopy(self.w)
 
     def restore_from_snapshot(self):
         print("..")
         if self.snapshot_board:
             self.board = copy.deepcopy(self.snapshot_board)
-            self.matrix = copy.deepcopy(self.snapshot_matrix)
-            self.T = copy.deepcopy(self.snapshot_T)
-            self.w = copy.deepcopy(self.snapshot_w)
+            #self.matrix = copy.deepcopy(self.snapshot_matrix)
+            #self.T = copy.deepcopy(self.snapshot_T)
+            #self.w = copy.deepcopy(self.snapshot_w)
 
     def get_damaged_cell_count(self):
         return len(self.damaged_cells)
@@ -314,6 +319,7 @@ class Maze(object):
                 self.board[x][y].set_weight(weights[config.NUMBER_OF_CELLS*x+y])
 
     def create_T(self,mouse):
+        print(f"In T {self.board[8][24].is_not_travellable}")
         for i in range (config.NUMBER_OF_CELLS_SQR):
             if not self.board[int(i//config.NUMBER_OF_CELLS)][int(i%config.NUMBER_OF_CELLS)].is_not_travellable:
                 for j in range (-2,3,1):

@@ -8,7 +8,7 @@ from tkinter import IntVar
 
 class MazeBuilder:
     DEFAULT_WEIGHT = 0.1  # default weight
-    DAMAGE_FILL_COLORS = ["tomato2","tomato3","tomato4","orangered4","red4","black"]
+    DAMAGE_FILL_COLORS = ["coral1","coral2","coral3","tomato2","tomato3","tomato4","orangered2","orangered3","red4","black"]
     def __init__(self):
         self.my_maze = maze.Maze(None)
         self.my_maze.blank_board()

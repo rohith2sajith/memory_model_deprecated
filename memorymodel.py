@@ -102,11 +102,22 @@ class MemoryModel (object):
         rb3 = tkinter.Radiobutton(maze_list_group, var=self.maze_name_var, text=config.MAZE_LIST[2], value=config.MAZE_LIST[2],command=self.change_maze_handler)
         rb4 = tkinter.Radiobutton(maze_list_group, var=self.maze_name_var, text=config.MAZE_LIST[3], value=config.MAZE_LIST[3],command=self.change_maze_handler)
         rb5 = tkinter.Radiobutton(maze_list_group, var=self.maze_name_var, text=config.MAZE_LIST[4], value=config.MAZE_LIST[4], command=self.change_maze_handler)
+        rb6 = tkinter.Radiobutton(maze_list_group, var=self.maze_name_var, text=config.MAZE_LIST[5], value=config.MAZE_LIST[5], command=self.change_maze_handler)
+        rb7 = tkinter.Radiobutton(maze_list_group, var=self.maze_name_var, text=config.MAZE_LIST[6], value=config.MAZE_LIST[6], command=self.change_maze_handler)
+        rb8 = tkinter.Radiobutton(maze_list_group, var=self.maze_name_var, text=config.MAZE_LIST[7], value=config.MAZE_LIST[7], command=self.change_maze_handler)
+        rb9 = tkinter.Radiobutton(maze_list_group, var=self.maze_name_var, text=config.MAZE_LIST[8], value=config.MAZE_LIST[8], command=self.change_maze_handler)
+        rb10 = tkinter.Radiobutton(maze_list_group, var=self.maze_name_var, text=config.MAZE_LIST[9], value=config.MAZE_LIST[9], command=self.change_maze_handler)
+
         rb1.grid(sticky="W", row=0, column=0)
         rb2.grid(sticky="W", row=0, column=1)
         rb3.grid(sticky="W", row=1, column=0)
         rb4.grid(sticky="W", row=1, column=1)
         rb5.grid(sticky="W", row=2, column=0)
+        rb6.grid(sticky="W", row=2, column=1)
+        rb7.grid(sticky="W", row=3, column=0)
+        rb8.grid(sticky="W", row=3, column=1)
+        rb9.grid(sticky="W", row=4, column=0)
+        rb10.grid(sticky="W", row=4, column=1)
         return maze_list_group
 
     def setup_ui_config_panel(self,my_parent):
@@ -215,7 +226,7 @@ class MemoryModel (object):
         self.damage_avoid_reward_cell_var = IntVar()
 
         self.strategy_var.set(1)
-        self.damage_var.set(1)
+        self.damage_var.set(0)
         self.damage_count_var.set("2")
         self.damage_mode_var.set("1")
         self.maze_name_var.set("default")
@@ -388,14 +399,15 @@ class MemoryModel (object):
             self.remove_upper_layer()
             self.update_ui(board)
             self.current_maze = maze_to_load
+            self.init_damage_manager(int(self.damage_mode_var.get()), int(self.damage_count_var.get()))
             self.damage_manager.generate()
 
 
     def analyze_damage_handler(self):
-        test_damage_count = 150
+        test_damage_count = 50
         test_count =3
         # for each maze
-
+        self.damage_manager = None
         for mze in config.MAZE_LIST:
             self.change_maze(mze)  # load the maze
             damage_it = 0 # no damage
@@ -413,9 +425,12 @@ class MemoryModel (object):
                     fp.damage_count = test_damage_count
                     fp.use_new_weight_calc = False
                     fp.damage_avoid_reward_cell = True
+                    #ui
+                    self.damage_mode_var.set(fp.damage_mode)
+                    self.damage_count_var.set(fp.damage_count)
                     self.find_path_omnicient(fp)
                     self.update_status("Pausing test for 5 sec...")
-                    time.sleep(3)
+                    #time.sleep(3)
                     sum_find_path_length += self.rundata.search_length
 
                 if not damage_it: # control mode
@@ -925,11 +940,16 @@ class MemoryModel (object):
         # check to see the points are on last cell
         return  x_f > config.exit_cell_x1() and x_f < config.exit_cell_x2() and y_f > config.exit_cell_y1() and y_f < config.exit_cell_y2()
 
-    def generate_damageble_cells(self,damage_mode,damage_count):
+    def init_damage_manager(self,damage_mode,damage_count):
         if not self.damage_manager:
             self.damage_manager = damager.DamageManager(self.board(),self.damage_generator,damage_mode,damage_count,self.my_maze.travelled_cells)
             self.damage_manager.generate()
+        return self.damage_manager
 
+    def generate_damageble_cells(self,damage_mode,damage_count):
+        #self.init_board()
+
+        self.init_damage_manager(damage_mode, damage_count)
         return self.damage_manager.get_cells_damage()
 
     def gen_status_string(self,find_path_mode,loop_count,trap_count):

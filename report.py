@@ -52,12 +52,12 @@ class ReportData(object):
         return 0
 
     def calculate_damage_count_ratio(self):
-        if self.damage_flag:
+        if self.damage_flag and self.total_cells:
             return 1 - (self.num_cells_damaged/self.total_cells)
         return  0
 
     def calculate_path_ratio(self):
-        if self.damage_flag:
+        if self.damage_flag and self.control_path_length:
             return self.find_path_search_length/self.control_path_length
         return 0
 

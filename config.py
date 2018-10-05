@@ -23,7 +23,7 @@ DAMAGE_MODE_SINGLE_CELL=0
 DAMAGE_MODE_SPREAD_CELL=1
 DAMAGE_MODE_BOTH=2
 
-MAZE_LIST=["default","maze1","maze2","maze3","maze4"]
+MAZE_LIST=["default","maze1","maze2","maze3","maze4","maze5","maze6","maze7","maze8","maze9"]
 SIGMA2_INC=0.1
 SIGMA1_INC=0.1
 ROUND_TO_DIGITS=6
