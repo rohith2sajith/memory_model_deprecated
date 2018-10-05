@@ -12,7 +12,7 @@ from operator import itemgetter
 
 
 class DamageGeneratorSimple(object):
-    STATIC_DAMAGE_LIST=[0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1,0]
+    STATIC_DAMAGE_LIST=[0.8,0.64,0.512,0.4096,0.32768,0.2,0.1,0.05,0.025,0]
     index = 0
     def get_damage(self,idx=None):
         if not idx:

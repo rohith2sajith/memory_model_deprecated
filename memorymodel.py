@@ -404,7 +404,7 @@ class MemoryModel (object):
 
 
     def analyze_damage_handler(self):
-        test_damage_count = 50
+        test_damage_count = 100
         test_count =3
         # for each maze
         self.damage_manager = None
@@ -632,6 +632,8 @@ class MemoryModel (object):
 
     def make_cell_damaged(self,row,col,damage_index):
         fill_color = maze_maker.MazeBuilder.get_damage_fill_color(damage_index)
+        if self.board()[row][col].is_not_travellable:
+            fill_color = self.BLOCKED_CELL_COLOR
         box = self.canvas.create_rectangle(self.CELL_WIDTH * col,
                                            self.CELL_WIDTH * row,
                                            self.CELL_WIDTH * (col + 1),
